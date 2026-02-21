@@ -9,17 +9,32 @@ import { Calendar, LocaleConfig } from "react-native-calendars";
 import VerticalSection from "@/components/verticalSection";
 import ProgressCard from "@/components/progressCard";
 
+const monthNames = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
 export default function ProgressScreen() {
   const [selected, setSelected] = useState(
     LocaleConfig.defaultLocale === "en"
       ? new Date().toISOString().split("T")[0]
-      : new Date().toLocaleDateString("en-CA").split("/").reverse().join("-"),
+      : new Date().toLocaleDateString("en-CA").split("T")[0],
   );
 
   const [records, setRecords] = useState(0);
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.header}>Progress</Text>
       {/* Calendar */}
       <View>
@@ -42,62 +57,84 @@ export default function ProgressScreen() {
       {/* Workout Library */}
       <View style={styles.workoutLibrary}>
         <Text style={styles.section}>Workout Library</Text>
-        <View style={styles.quickSearchCard}>
-          <LinearGradient
-            colors={[
-              "rgba(81, 70, 238, 1)",
-              "rgba(138, 101, 240, 1)",
-              "rgba(199, 112, 189, 1)",
-            ]}
-            style={styles.background}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+        {/* <View style={styles.quickSearchCard}> */}
+        <LinearGradient
+          colors={[
+            "rgba(81, 70, 238, 1)",
+            "rgba(138, 101, 240, 1)",
+            "rgba(199, 112, 189, 1)",
+          ]}
+          style={styles.quickSearchCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.quickSearchContainer}>
+            <Ionicons
+              name="search-outline"
+              size={36}
+              color={theme.colors.white}
+            />
+            <View style={styles.quickSearchTextContainer}>
+              <Text style={styles.quicklySearch}>Quickly Search</Text>
+              <Text style={styles.quickSearchText}>For workouts You Need</Text>
+            </View>
+            <Ionicons
+              name="arrow-forward-outline"
+              size={16}
+              color="transparent"
+              backgroundColor="white"
+              borderRadius={100}
+              padding={10}
+            />
+          </View>
+        </LinearGradient>
+        {/* </View> */}
+      </View>
+
+      {/* Progress */}
+      <View style={styles.progressContainer}>
+        <View>
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <View style={styles.quickSearchContainer}>
-              <Ionicons
-                name="search-outline"
-                size={36}
-                color={theme.colors.white}
-              />
-              <View style={styles.quickSearchTextContainer}>
-                <Text style={styles.quicklySearch}>Quickly Search</Text>
-                <Text style={styles.quickSearchText}>
-                  For workouts You Need
-                </Text>
-              </View>
+            <Text
+              style={styles.section}
+            >{`${monthNames[new Date(selected).getMonth()]}. ${new Date(selected).getFullYear()}`}</Text>
+            <Pressable style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={styles.historyText}>All history</Text>
               <Ionicons
                 name="arrow-forward-outline"
                 size={16}
-                color="transparent"
-                backgroundColor="white"
+                color="blue"
                 borderRadius={100}
                 padding={10}
               />
-            </View>
-          </LinearGradient>
+            </Pressable>
+          </View>
+          <Text style={styles.subtitle}>{`${records} Records`}</Text>
         </View>
-      </View>
-      <VerticalSection title={selected} subtitle={`${records} Records`}>
-        <ProgressCard />
-        <Pressable>
+        <View style={styles.progressList}>
+          {records > 0 ? (
+            <ProgressCard />
+          ) : (
+            <Text
+              style={{
+                ...styles.subtitle,
+                fontSize: theme.fontSize.section,
+                textAlign: "center",
+                marginTop: 40,
+              }}
+            >
+              No records this month yet. Come and start now!
+            </Text>
+          )}
+        </View>
+
+        <Pressable style={styles.button}>
           <Text style={styles.buttonText}>Start a Workout</Text>
         </Pressable>
-      </VerticalSection>
-      {/* <ScrollView
-        showsVerticalScrollIndicator={false}
-        // contentContainerStyle={{ gap: 16 }}
-        style={styles.progressContainer}
-      >
-        <View>
-          <Text style={styles.section}>{selected}</Text>
-          <Text style={styles.subtitle}>Records: {records}</Text>
-        </View>
-        <View style={styles.progressList}></View>
-        <Pressable>
-          <Text style={styles.buttonText}>View Details</Text>
-        </Pressable>
-      </ScrollView> */}
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -126,21 +163,16 @@ const styles = StyleSheet.create({
   },
 
   workoutLibrary: {
-    marginBottom: 16,
+    marginTop: 24,
+    marginBottom: 24,
   },
   section: {
     fontSize: theme.fontSize.section,
     fontWeight: "600",
     color: theme.colors.text,
+    marginBottom: 8,
   },
-  background: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    borderRadius: 25,
-  },
+
   quickSearchCard: {
     borderRadius: 25,
     width: "100%",
@@ -164,27 +196,39 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
   },
   progressContainer: {
-    width: "100%",
-    height: 150,
-    padding: theme.spacing.gap,
+    marginBottom: theme.spacing.gap,
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    padding: theme.spacing.gap,
+    minHeight: 300,
   },
   scrollView: {
     marginTop: 16,
   },
+  historyText: {
+    fontSize: theme.fontSize.subtitle,
+    color: "blue",
+  },
   progressList: {
-    gap: theme.spacing.gap,
-    flexDirection: "row",
-    flexWrap: "wrap",
+    marginTop: 16,
+    flexDirection: "column",
+    flexGrow: 1,
+
+    // flexWrap: "wrap",
+  },
+  button: {
+    backgroundColor: theme.colors.button,
+    borderRadius: theme.radius.button,
+    bottom: 0,
+    top: "auto",
+    padding: 16,
+    marginTop: 16,
+    alignItems: "center",
+    width: "100%",
   },
   buttonText: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: theme.radius.button,
-    backgroundColor: theme.colors.button,
     fontSize: theme.fontSize.card,
     color: theme.colors.white,
     fontWeight: "700",
