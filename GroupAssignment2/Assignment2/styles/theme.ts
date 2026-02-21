@@ -9,6 +9,7 @@ export const theme = {
     primaryLight: "#EEF0FF",  
     white: "#ffffff",
     black: "#000000",
+    button: "#7a73ffff",
     },
     spacing: {
     screen: 20,
