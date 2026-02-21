@@ -71,7 +71,7 @@ export default function ProgressScreen() {
           <View style={styles.quickSearchContainer}>
             <Ionicons
               name="search-outline"
-              size={36}
+              size={42}
               color={theme.colors.white}
             />
             <View style={styles.quickSearchTextContainer}>
@@ -80,11 +80,11 @@ export default function ProgressScreen() {
             </View>
             <Ionicons
               name="arrow-forward-outline"
-              size={16}
-              color="transparent"
+              size={20}
+              color="inherit"
               backgroundColor="white"
               borderRadius={100}
-              padding={10}
+              padding={16}
             />
           </View>
         </LinearGradient>
