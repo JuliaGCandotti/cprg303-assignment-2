@@ -6,7 +6,6 @@ import HorizontalSection from "@/components/horizontalSection";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { Calendar, LocaleConfig } from "react-native-calendars";
-import VerticalSection from "@/components/verticalSection";
 import ProgressCard from "@/components/progressCard";
 
 const monthNames = [
