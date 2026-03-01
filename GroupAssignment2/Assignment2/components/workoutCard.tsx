@@ -1,7 +1,7 @@
-import React from "react";
-import { theme } from "../styles/theme";
-import { StyleSheet, Text, View, Image, Pressable } from "react-native";
 import { router } from "expo-router";
+import React from "react";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { theme } from "../styles/theme";
 
 type Props = {
   id: string;
@@ -28,7 +28,7 @@ export default function WorkoutCard({
     <Pressable
       onPress={() =>
         router.push({
-          pathname: "/(tabs)/programDescription/[details]",
+          pathname: "/programDescription/[details]",
           params: {
             details: id,
             title,

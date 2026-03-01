@@ -1,12 +1,20 @@
-import React from "react";
-import { StyleSheet, Text, View, ScrollView, Pressable, Image } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { theme } from "@/styles/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
+import React from "react";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+
+const workoutImages: Record<string, any> = {
+  "1":{ uri: "https://img.freepik.com/free-photo/woman-practising-yoga_1303-13982.jpg" },
+  "2":{ uri :"https://img.freepik.com/free-photo/sid-view-overweight-obese-young-woman-wearing-t-shirt-leggings-doing-physical-training-mat-strengthen-legs-arms-abs-spine-weght-loss-fitness-sports-active-lifestyle-concept_344912-44.jpg"},
+  "3":{ uri : "https://img.freepik.com/free-photo/woman-doing-her-workout-home_23-2148995612.jpg"},
+  "4":{ uri: "https://img.freepik.com/free-photo/woman-stretching-arms-up-by-window-sunrise-with-sun-flare_41433-205.jpg"},
+};
 
 export default function ProgramDetails() {
-  const { title, duration, numberOfExercises, level, kcal, description } =
+ const { details, title, duration, numberOfExercises, level, kcal, description } =
   useLocalSearchParams<{
+    details: string;
     title: string;
     duration: string;
     numberOfExercises: string;
@@ -14,19 +22,23 @@ export default function ProgramDetails() {
     kcal: string;
     description: string;
   }>();
-
   return (
     <ScrollView style={styles.container}>
 
       {/* Image placeholder with back and like buttons */}
-      <View style={styles.imagePlaceholder}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color={theme.colors.white} />
-        </Pressable>
-        <Pressable style={styles.likeButton}>
-          <Ionicons name="heart-outline" size={22} color={theme.colors.white} />
-        </Pressable>
-      </View>
+     <View style={styles.imagePlaceholder}>
+      <Image
+        source={workoutImages[details]}
+        style={styles.heroImage}
+        resizeMode="cover"
+      />
+      <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={22} color={theme.colors.white} />
+      </Pressable>
+      <Pressable style={styles.likeButton}>
+        <Ionicons name="heart-outline" size={22} color={theme.colors.white} />
+      </Pressable>
+    </View>
 
       {/* Content */}
       <View style={styles.content}>
@@ -70,25 +82,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.bg,
   },
-  imagePlaceholder: {
+ imagePlaceholder: {
+  width: "100%",
+  height: 250,
+  position: "relative",
+},
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
     width: "100%",
-    height: 250,
-    backgroundColor: theme.colors.border,
-    justifyContent: "space-between",
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: 16,
-  },
+    height: "100%",
+},
   backButton: {
-    backgroundColor: "rgba(0,0,0,0.4)",
-    borderRadius: 20,
-    padding: 8,
-  },
-  likeButton: {
-    backgroundColor: "rgba(0,0,0,0.4)",
-    borderRadius: 20,
-    padding: 8,
-  },
+  position: "absolute",
+  top: 16,
+  left: 16,
+  backgroundColor: "rgba(0,0,0,0.4)",
+  borderRadius: 20,
+  padding: 8,
+},
+likeButton: {
+  position: "absolute",
+  top: 16,
+  right: 16,
+  backgroundColor: "rgba(0,0,0,0.4)",
+  borderRadius: 20,
+  padding: 8,
+},
   content: {
     padding: theme.spacing.screen,
   },
