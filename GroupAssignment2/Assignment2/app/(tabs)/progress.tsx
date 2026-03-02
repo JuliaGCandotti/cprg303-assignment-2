@@ -82,14 +82,16 @@ export default function ProgressScreen() {
               <Text style={styles.quicklySearch}>Quickly Search</Text>
               <Text style={styles.quickSearchText}>For workouts You Need</Text>
             </View>
-            <Ionicons
-              name="arrow-forward-outline"
-              size={20}
-              color="inherit"
-              backgroundColor="white"
-              borderRadius={100}
-              padding={16}
-            />
+            <View style={styles.icon}>
+              <Ionicons
+                name="arrow-forward-outline"
+                size={20}
+                color="black"
+                backgroundColor="white"
+                borderRadius={100}
+                padding={16}
+              />
+            </View>
           </View>
         </LinearGradient>
         {/* </View> */}
@@ -106,13 +108,7 @@ export default function ProgressScreen() {
             >{`${monthNames[new Date(selected).getMonth()]}. ${new Date(selected).getFullYear()}`}</Text>
             <Pressable style={{ flexDirection: "row", alignItems: "center" }}>
               <Text style={styles.historyText}>All history</Text>
-              <Ionicons
-                name="arrow-forward-outline"
-                size={16}
-                color="blue"
-                borderRadius={100}
-                padding={10}
-              />
+              <Ionicons name="arrow-forward-outline" size={16} color="blue" />
             </Pressable>
           </View>
           <Text style={styles.subtitle}>{`${records} Records`}</Text>
@@ -243,5 +239,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: theme.spacing.gap,
     justifyContent: "space-evenly",
+  },
+  icon: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 100,
+    padding: 16,
   },
 });
