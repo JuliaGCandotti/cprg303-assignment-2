@@ -35,6 +35,11 @@ export default function ProgressScreen() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Progress</Text>
+      <View style={styles.horizontalSection}>
+        <Text style={styles.section}> Calendar</Text>
+        <Text style={styles.section}> Duration</Text>
+        <Text style={styles.section}> Calories</Text>
+      </View>
       {/* Calendar */}
       <View>
         <Calendar
@@ -232,5 +237,11 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontWeight: "700",
     textAlign: "center",
+  },
+  horizontalSection: {
+    display: "flex",
+    flexDirection: "row",
+    gap: theme.spacing.gap,
+    justifyContent: "space-evenly",
   },
 });
