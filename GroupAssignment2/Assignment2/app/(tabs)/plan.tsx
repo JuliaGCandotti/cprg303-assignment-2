@@ -14,6 +14,10 @@ const WORKOUTS = [
     kcal: "61.4",
     description:
       "Want to sculpt your arms? Kickstart your fitness revolution with this Pilates flow and achieve a well-toned upper body that sets you apart!\n\nBy engaging the muscles in your arms, shoulders, and upper back, you'll attain elegantly sculpted and finely defined arms you've been dreaming of!",
+
+    image: {
+      uri: "https://img.freepik.com/free-photo/sid-view-overweight-obese-young-woman-wearing-t-shirt-leggings-doing-physical-training-mat-strengthen-legs-arms-abs-spine-weght-loss-fitness-sports-active-lifestyle-concept_344912-44.jpg",
+    },
   },
   {
     id: "2",
@@ -24,6 +28,10 @@ const WORKOUTS = [
     kcal: "117.9",
     description:
       "De-stress with this calming yoga routine. This practice is tailored to soothe your nervous system, calm your mind, and help you find inner peace. \n\nEach pose will lead you through mindful movements, bringing more balance and peace within your mind. This is your inner work!",
+
+    image: {
+      uri: "https://img.freepik.com/free-photo/woman-doing-her-workout-home_23-2148995612.jpg",
+    },
   },
 ];
 
@@ -80,6 +88,7 @@ export default function PlanScreen() {
           level={workout.level}
           kcal={workout.kcal}
           description={workout.description}
+          image={workout.image}
         />
       ))}
     </ScrollView>
