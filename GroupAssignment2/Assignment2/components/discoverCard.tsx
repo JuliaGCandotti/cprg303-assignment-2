@@ -6,44 +6,30 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 type Program = {
   id: string;
   title: string;
-  duration: string;
-  numberOfExercises: string;
+  durationMinutes: number;
   level: string;
-  kcal: string;
-  description: string;
-  category: string;
   image: any;
 };
 
 export default function DiscoverCard({ program }: { program: Program }) {
-  const handlePress = () => {
-    router.push({
-    pathname: "/programDescription/[details]",
-    params: {
-      details: program.id, 
-      title: program.title,
-      duration: program.duration,
-      numberOfExercises: program.numberOfExercises,
-      level: program.level,
-      kcal: program.kcal,
-      description: program.description,
-      },
-    });
-  };
-
-    return (
-    <Pressable style={styles.card} onPress={handlePress}>
-        <View style={styles.imageWrapper}>
+  return (
+    <Pressable
+      style={styles.card}
+      onPress={() =>
+        router.push({ pathname: "/workout/[id]", params: { id: program.id } })
+      }
+    >
+      <View style={styles.imageWrapper}>
         <Image source={program.image} style={styles.image} resizeMode="cover" />
-        </View>
-        <Text style={styles.title} numberOfLines={2}>
+      </View>
+      <Text style={styles.title} numberOfLines={2}>
         {program.title}
-        </Text>
-        <Text style={styles.subtitle}>
-        {program.level} · {program.duration} min
-        </Text>
+      </Text>
+      <Text style={styles.subtitle}>
+        {program.level} · {program.durationMinutes} min
+      </Text>
     </Pressable>
-    );
+  );
 }
 
 const styles = StyleSheet.create({
@@ -61,9 +47,7 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
-    objectFit: "cover" as any
-    },
-
+  },
   title: {
     fontSize: 14,
     fontWeight: "700",

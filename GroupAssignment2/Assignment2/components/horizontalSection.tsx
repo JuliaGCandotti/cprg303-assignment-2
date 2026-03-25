@@ -12,9 +12,6 @@ export default function HorizontalSection({ title, children }: Props) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
-        <Pressable>
-          <Text style={styles.viewAll}>View all &gt;</Text>
-        </Pressable>
       </View>
       <ScrollView
         horizontal

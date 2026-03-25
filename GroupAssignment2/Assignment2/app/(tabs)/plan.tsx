@@ -1,94 +1,117 @@
 import React from "react";
-import { StyleSheet, Text, View, ScrollView, Pressable, Image } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  Pressable,
+  Image,
+} from "react-native";
+import { router } from "expo-router";
 import { theme } from "@/styles/theme";
-import WorkoutCard from "@/components/workoutCard";
 import HorizontalSection from "@/components/horizontalSection";
+import WorkoutCard from "@/components/workoutCard";
+import { WORKOUTS } from "@/data/workouts";
 
-const WORKOUTS = [
-  {
-    id: "1",
-    title: "Quick Arms & Upper Body Pilates",
-    duration: 6,
-    numberOfExercises: 8,
-    level: "Beginner",
-    kcal: "61.4",
-    description: "Want to sculpt your arms? Kickstart your fitness revolution with this Pilates flow and achieve a well-toned upper body that sets you apart!\n\nBy engaging the muscles in your arms, shoulders, and upper back, you'll attain elegantly sculpted and finely defined arms you've been dreaming of!",
-    image: { uri: "https://img.freepik.com/free-photo/fitness-girl-lifting-dumbbell_1163-1847.jpg" },
-  },
-  {
-    id: "2",
-    title: "Yoga for Anxiety & Stress Relief",
-    duration: 17,
-    numberOfExercises: 22,
-    level: "Beginner",
-    kcal: "117.9",
-    description: "De-stress with this calming yoga routine. This practice is tailored to soothe your nervous system, calm your mind, and help you find inner peace.\n\nEach pose will lead you through mindful movements, bringing more balance and peace within your mind. This is your inner work!",
-    image: { uri: "https://img.freepik.com/free-photo/young-woman-doing-anjaneyasana-exercise_1163-5040.jpg" },
-  },
+// The featured workout for DAY 1
+const DAY_1_WORKOUT_ID = "lower-body-training";
+
+// "Best for you" — picks from the workout data
+const BEST_FOR_YOU_IDS = [
+  "belly-fat-burner",
+  "lose-fat",
+  "plank",
+  "build-wider-biceps",
 ];
 
-const CHALLENGES = [
-  { id: "1", label: "28-DAY", title: "STRETCHING", users: "19K", image: { uri: "https://img.freepik.com/free-photo/cheerful-fitness-woman-making-yoga-exercise_171337-7751.jpg" } },
-  { id: "2", label: "28-DAY", title: "FLAT ABS", users: "21K", image: { uri: "https://img.freepik.com/free-photo/side-view-determined-young-woman-holding-slam-ball-with-her-legs-doing-abdominal-crunches-have-flat-abs_662251-1367.jpg" } },
-  { id: "3", label: "28-DAY", title: "STRENGTH", users: "16K", image: { uri: "https://img.freepik.com/free-photo/crossfit-athlete-doing-exercise-with-barbell_58466-11670.jpg" } },
-  { id: "4", label: "28-DAY", title: "POWER LEGS", users: "12K", image: { uri: "https://img.freepik.com/free-photo/fitness-woman-doing-stretching-exercises_171337-13281.jpg" } },
-];
+// Challenges
+const CHALLENGE_IDS = ["challenge-plank", "challenge-sprint", "challenge-squat"];
 
 export default function PlanScreen() {
+  const day1 = WORKOUTS.find((w) => w.id === DAY_1_WORKOUT_ID)!;
+  const bestForYou = WORKOUTS.filter((w) => BEST_FOR_YOU_IDS.includes(w.id));
+  const challenges = WORKOUTS.filter((w) => CHALLENGE_IDS.includes(w.id));
+
+  const goToWorkout = (id: string) => {
+    router.push({ pathname: "/workout/[id]", params: { id } });
+  };
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <Text style={styles.header}>Pilates Primer</Text>
+      <Text style={styles.header}>FitMate</Text>
 
       {/* DAY 1 Card */}
-      <View style={styles.dayCard}>
+      <Pressable style={styles.dayCard} onPress={() => goToWorkout(day1.id)}>
         <Image
-          source={{ uri: "https://img.freepik.com/free-photo/sport-is-my-life-unshaven-man-has-workout-gym_273609-29961.jpg" }}
+          source={day1.image}
           style={styles.dayImage}
           resizeMode="cover"
         />
         <View style={styles.dayOverlay}>
-          <Text style={styles.dayTitle}>DAY 1</Text>
-          <Text style={styles.daySubtitle}>6 Min | 7 Exercises</Text>
-          <Pressable style={styles.startButton}>
-            <Text style={styles.startText}>Start →</Text>
+          <View>
+            <Text style={styles.dayTitle}>Current Workout</Text>
+            <Text style={styles.daySubtitle}>
+              {day1.durationMinutes} min | {day1.exercises.length} exercises
+            </Text>
+          </View>
+          <Pressable
+            style={styles.startButton}
+            onPress={() => goToWorkout(day1.id)}
+          >
+            <Text style={styles.startText}>Start</Text>
           </Pressable>
         </View>
+      </Pressable>
+
+      {/* Best for you */}
+      <Text style={styles.sectionTitle}>Best for you</Text>
+      <View style={styles.grid}>
+        {bestForYou.map((workout) => (
+          <Pressable
+            key={workout.id}
+            style={styles.gridCard}
+            onPress={() => goToWorkout(workout.id)}
+          >
+            <Image
+              source={workout.image}
+              style={styles.gridImage}
+              resizeMode="cover"
+            />
+            <Text style={styles.gridTitle} numberOfLines={1}>
+              {workout.title}
+            </Text>
+            <View style={styles.gridTags}>
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{workout.durationMinutes} min</Text>
+              </View>
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{workout.level}</Text>
+              </View>
+            </View>
+          </Pressable>
+        ))}
       </View>
 
       {/* Challenges */}
-      <HorizontalSection title="Challenges">
-        {CHALLENGES.map((challenge) => (
-          <View key={challenge.id} style={styles.challengeCard}>
-            <Image source={challenge.image} style={styles.challengeImage} resizeMode="cover" />
-            <View style={styles.challengeContent}>
-              <Text style={styles.challengeLabel}>{challenge.label}</Text>
+      <HorizontalSection title="Challenge">
+        {challenges.map((challenge) => (
+          <Pressable
+            key={challenge.id}
+            style={styles.challengeCard}
+            onPress={() => goToWorkout(challenge.id)}
+          >
+            <Image
+              source={challenge.image}
+              style={styles.challengeImage}
+              resizeMode="cover"
+            />
+            <View style={styles.challengeOverlay}>
               <Text style={styles.challengeTitle}>{challenge.title}</Text>
-              <Text style={styles.challengeUsers}>{challenge.users} users joined</Text>
-              <Pressable style={styles.joinButton}>
-                <Text style={styles.joinText}>Join</Text>
-              </Pressable>
             </View>
-          </View>
+          </Pressable>
         ))}
       </HorizontalSection>
-
-      {/* Just for you */}
-      <Text style={styles.sectionTitle}>Just for you</Text>
-      <Text style={styles.sectionSubtitle}>Tailored to your goals & preferences!</Text>
-      {WORKOUTS.map((workout) => (
-        <WorkoutCard
-          id={workout.id}
-          key={workout.id}
-          title={workout.title}
-          duration={workout.duration}
-          numberOfExercises={workout.numberOfExercises}
-          level={workout.level}
-          kcal={workout.kcal}
-          description={workout.description}
-          image={workout.image}
-        />
-      ))}
     </ScrollView>
   );
 }
@@ -97,19 +120,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.bg,
-    padding: theme.spacing.screen,
+    paddingHorizontal: theme.spacing.screen,
+    paddingTop: 52,
   },
   header: {
     fontSize: theme.fontSize.title,
     fontWeight: "800",
     color: theme.colors.text,
-    marginBottom: 16,
+    marginBottom: 20,
   },
+
+  // DAY 1
   dayCard: {
     borderRadius: theme.radius.card,
     overflow: "hidden",
-    marginBottom: 24,
-    height: 200,
+    marginBottom: 28,
+    height: 220,
   },
   dayImage: {
     ...StyleSheet.absoluteFillObject,
@@ -118,24 +144,24 @@ const styles = StyleSheet.create({
   },
   dayOverlay: {
     flex: 1,
-    backgroundColor: "rgba(124, 111, 247, 0.55)",
+    backgroundColor: "rgba(255,182,193,0.55)",
     padding: theme.spacing.card,
     justifyContent: "space-between",
   },
   dayTitle: {
-    fontSize: 36,
-    fontWeight: "800",
+    fontSize: 42,
+    fontWeight: "900",
     color: theme.colors.white,
   },
   daySubtitle: {
     fontSize: theme.fontSize.subtitle,
     color: theme.colors.white,
-    marginBottom: 8,
+    fontWeight: "600",
   },
   startButton: {
     backgroundColor: theme.colors.white,
     borderRadius: theme.radius.button,
-    padding: 14,
+    paddingVertical: 14,
     alignItems: "center",
   },
   startText: {
@@ -143,56 +169,74 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.text,
   },
-  challengeCard: {
-    width: 180,
-    borderRadius: theme.radius.card,
-    overflow: "hidden",
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  challengeImage: {
-    width: "100%",
-    height: 100,
-  },
-  challengeContent: {
-    padding: theme.spacing.card,
-  },
-  challengeLabel: {
-    fontSize: theme.fontSize.subtitle,
-    color: theme.colors.muted,
-    marginBottom: 4,
-  },
-  challengeTitle: {
-    fontSize: theme.fontSize.section,
-    fontWeight: "800",
-    color: theme.colors.text,
-    marginBottom: 8,
-  },
-  challengeUsers: {
-    fontSize: theme.fontSize.subtitle,
-    color: theme.colors.muted,
-    marginBottom: 12,
-  },
-  joinButton: {
-    backgroundColor: theme.colors.text,
-    borderRadius: theme.radius.button,
-    padding: 10,
-    alignItems: "center",
-  },
-  joinText: {
-    color: theme.colors.white,
-    fontWeight: "700",
-  },
+
+  // Best for you grid
   sectionTitle: {
     fontSize: theme.fontSize.section,
     fontWeight: "800",
     color: theme.colors.text,
-    marginBottom: 4,
+    marginBottom: 14,
   },
-  sectionSubtitle: {
-    fontSize: theme.fontSize.subtitle,
-    color: theme.colors.muted,
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 28,
+  },
+  gridCard: {
+    width: "48%",
     marginBottom: 16,
+  },
+  gridImage: {
+    width: "100%",
+    height: 110,
+    borderRadius: 12,
+    backgroundColor: theme.colors.border,
+    marginBottom: 8,
+  },
+  gridTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: 6,
+  },
+  gridTags: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  tag: {
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  tagText: {
+    fontSize: 11,
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+
+  // Challenges
+  challengeCard: {
+    width: 140,
+    height: 100,
+    borderRadius: theme.radius.card,
+    overflow: "hidden",
+  },
+  challengeImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
+  challengeOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+    padding: 10,
+  },
+  challengeTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: theme.colors.white,
   },
 });
