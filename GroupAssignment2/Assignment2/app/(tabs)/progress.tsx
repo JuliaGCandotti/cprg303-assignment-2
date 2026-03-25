@@ -1,139 +1,203 @@
-// placeholder!!
-import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
 import { theme } from "@/styles/theme";
-import { useState } from "react";
-import HorizontalSection from "@/components/horizontalSection";
-import { LinearGradient } from "expo-linear-gradient";
+import { WORKOUTS } from "@/data/workouts";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Calendar, LocaleConfig } from "react-native-calendars";
-import ProgressCard from "@/components/progressCard";
+import React, { useCallback, useState } from "react";
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-const monthNames = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+type CompletedEntry = {
+  id: string;
+  title: string;
+  completedAt: string;
+};
+
+const PERIOD_LABELS = ["W", "M", "Year"];
 
 export default function ProgressScreen() {
-  const [selected, setSelected] = useState(
-    LocaleConfig.defaultLocale === "en"
-      ? new Date().toISOString().split("T")[0]
-      : new Date().toLocaleDateString("en-CA").split("T")[0],
+  const [completed, setCompleted] = useState<CompletedEntry[]>([]);
+  const [activePeriod, setActivePeriod] = useState("M");
+
+  // Reload every time the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadCompleted();
+    }, [])
   );
 
-  const [records, setRecords] = useState(0);
+  const loadCompleted = async () => {
+    try {
+      const raw = await AsyncStorage.getItem("completedWorkouts");
+      const list: CompletedEntry[] = raw ? JSON.parse(raw) : [];
+      setCompleted(list);
+    } catch {
+      setCompleted([]);
+    }
+  };
+
+  const now = new Date();
+  const monthName = now.toLocaleString("en-US", { month: "long" });
+  const year = now.getFullYear();
+
+  // Filter by period
+  const filtered = completed.filter((entry) => {
+    const date = new Date(entry.completedAt);
+    if (activePeriod === "W") {
+      const weekAgo = new Date();
+      weekAgo.setDate(now.getDate() - 7);
+      return date >= weekAgo;
+    }
+    if (activePeriod === "M") {
+      return (
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear()
+      );
+    }
+    // Year
+    return date.getFullYear() === now.getFullYear();
+  });
+
+  const totalKcal = filtered.reduce((sum, entry) => {
+    const workout = WORKOUTS.find((w) => w.id === entry.id);
+    return sum + (workout?.kcal ?? 0);
+  }, 0);
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header */}
       <Text style={styles.header}>Progress</Text>
-      <View style={styles.horizontalSection}>
-        <Text style={styles.section}> Calendar</Text>
-        <Text style={styles.section}> Duration</Text>
-        <Text style={styles.section}> Calories</Text>
-      </View>
-      {/* Calendar */}
-      <View>
-        <Calendar
-          style={styles.calendar}
-          onDayPress={(day) => {
-            setSelected(day.dateString);
-          }}
-          // current={}
-          markedDates={{
-            [selected]: {
-              selected: true,
-              disableTouchEvent: true,
-              selectedColor: theme.colors.muted,
-            },
-          }}
-        />
-      </View>
 
-      {/* Workout Library */}
-      <View style={styles.workoutLibrary}>
-        <Text style={styles.section}>Workout Library</Text>
-        {/* <View style={styles.quickSearchCard}> */}
-        <LinearGradient
-          colors={[
-            "rgba(81, 70, 238, 1)",
-            "rgba(138, 101, 240, 1)",
-            "rgba(199, 112, 189, 1)",
-          ]}
-          style={styles.quickSearchCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.quickSearchContainer}>
-            <Ionicons
-              name="search-outline"
-              size={42}
-              color={theme.colors.white}
-            />
-            <View style={styles.quickSearchTextContainer}>
-              <Text style={styles.quicklySearch}>Quickly Search</Text>
-              <Text style={styles.quickSearchText}>For workouts You Need</Text>
-            </View>
-            <View style={styles.icon}>
-              <Ionicons
-                name="arrow-forward-outline"
-                size={20}
-                color="black"
-                backgroundColor="white"
-                borderRadius={100}
-                padding={16}
-              />
-            </View>
-          </View>
-        </LinearGradient>
-        {/* </View> */}
-      </View>
-
-      {/* Progress */}
-      <View style={styles.progressContainer}>
-        <View>
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
-            <Text
-              style={styles.section}
-            >{`${monthNames[new Date(selected).getMonth()]}. ${new Date(selected).getFullYear()}`}</Text>
-            <Pressable style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.historyText}>All history</Text>
-              <Ionicons name="arrow-forward-outline" size={16} color="blue" />
-            </Pressable>
-          </View>
-          <Text style={styles.subtitle}>{`${records} Records`}</Text>
-        </View>
-        <View style={styles.progressList}>
-          {records > 0 ? (
-            <ProgressCard />
-          ) : (
-            <Text
-              style={{
-                ...styles.subtitle,
-                fontSize: theme.fontSize.section,
-                textAlign: "center",
-                marginTop: 40,
-              }}
+      {/* Month + period picker */}
+      <View style={styles.topRow}>
+        <Text style={styles.monthTitle}>
+          {monthName} {year}
+        </Text>
+        <View style={styles.periodRow}>
+          {PERIOD_LABELS.map((p) => (
+            <Pressable
+              key={p}
+              style={[
+                styles.periodButton,
+                activePeriod === p && styles.periodButtonActive,
+              ]}
+              onPress={() => setActivePeriod(p)}
             >
-              No records this month yet. Come and start now!
-            </Text>
-          )}
+              <Text
+                style={[
+                  styles.periodText,
+                  activePeriod === p && styles.periodTextActive,
+                ]}
+              >
+                {p}
+              </Text>
+            </Pressable>
+          ))}
+          <Pressable style={styles.calendarIcon}>
+            <Ionicons
+              name="calendar-outline"
+              size={20}
+              color={theme.colors.muted}
+            />
+          </Pressable>
         </View>
-
-        <Pressable style={styles.button}>
-          <Text style={styles.buttonText}>Start a Workout</Text>
-        </Pressable>
       </View>
+
+      {/* Stats cards */}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Calories</Text>
+          <Text style={styles.statValue}>{totalKcal}kCal</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Workouts Done</Text>
+          <Text style={styles.statValue}>{filtered.length}</Text>
+        </View>
+      </View>
+
+      {/* Weekly Planner row */}
+      <Pressable style={styles.plannerRow}>
+        <Text style={styles.plannerTitle}>Weekly Planner</Text>
+        <Ionicons
+          name="chevron-forward"
+          size={20}
+          color={theme.colors.muted}
+        />
+      </Pressable>
+
+      {/* Your Progress */}
+      <Text style={styles.sectionTitle}>Your progress</Text>
+
+      {filtered.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons
+            name="barbell-outline"
+            size={48}
+            color={theme.colors.border}
+          />
+          <Text style={styles.emptyText}>No workouts recorded yet.</Text>
+          <Text style={styles.emptySubtext}>
+            Complete a workout and it'll show up here!
+          </Text>
+          <Pressable
+            style={styles.startButton}
+            onPress={() => router.push("/(tabs)/plan")}
+          >
+            <Text style={styles.startButtonText}>Start a Workout</Text>
+          </Pressable>
+        </View>
+      ) : (
+        filtered.map((entry, index) => {
+          const workout = WORKOUTS.find((w) => w.id === entry.id);
+          return (
+            <View key={`${entry.id}-${index}`} style={styles.progressCard}>
+              <Image
+                source={workout?.image ?? { uri: "" }}
+                style={styles.progressImage}
+                resizeMode="cover"
+              />
+              <View style={styles.progressInfo}>
+                <Text style={styles.progressTitle}>{entry.title}</Text>
+                {workout && (
+                  <View style={styles.progressTags}>
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>
+                        {workout.durationMinutes} min
+                      </Text>
+                    </View>
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>{workout.level}</Text>
+                    </View>
+                  </View>
+                )}
+                <Text style={styles.progressDate}>
+                  {formatDate(entry.completedAt)}
+                </Text>
+              </View>
+              <View style={styles.completedBadge}>
+                <Text style={styles.completedText}>completed</Text>
+                <Ionicons name="checkmark" size={14} color="#059669" />
+              </View>
+            </View>
+          );
+        })
+      )}
     </ScrollView>
   );
 }
@@ -141,8 +205,9 @@ export default function ProgressScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: theme.colors.bg,
+    padding: theme.spacing.screen,
+    paddingTop: 52,
   },
   header: {
     fontSize: theme.fontSize.title,
@@ -150,99 +215,185 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: 16,
   },
-  subtitle: {
-    fontSize: theme.fontSize.subtitle,
-    color: theme.colors.muted,
-  },
-  calendar: {
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.card,
-    width: "100%",
-    alignSelf: "center",
-    borderWidth: 1,
-  },
-
-  workoutLibrary: {
-    marginTop: 24,
-    marginBottom: 24,
-  },
-  section: {
-    fontSize: theme.fontSize.section,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: 8,
-  },
-
-  quickSearchCard: {
-    borderRadius: 25,
-    width: "100%",
-    height: 100,
-  },
-  quickSearchContainer: {
-    flex: 1,
+  topRow: {
     flexDirection: "row",
-    justifyContent: "space-evenly",
+    justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 16,
   },
-  quickSearchTextContainer: {
-    marginLeft: 16,
-  },
-  quickSearchText: {
-    color: theme.colors.white,
-  },
-  quicklySearch: {
+  monthTitle: {
     fontSize: theme.fontSize.section,
     fontWeight: "800",
-    color: theme.colors.white,
+    color: theme.colors.text,
   },
-  progressContainer: {
-    marginBottom: theme.spacing.gap,
+  periodRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  periodButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    padding: theme.spacing.gap,
-    minHeight: 300,
   },
-  scrollView: {
-    marginTop: 16,
+  periodButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
-  historyText: {
-    fontSize: theme.fontSize.subtitle,
-    color: "blue",
+  periodText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.muted,
   },
-  progressList: {
-    marginTop: 16,
-    flexDirection: "column",
-    flexGrow: 1,
-
-    // flexWrap: "wrap",
-  },
-  button: {
-    backgroundColor: theme.colors.button,
-    borderRadius: theme.radius.button,
-    bottom: 0,
-    top: "auto",
-    padding: 16,
-    marginTop: 16,
-    alignItems: "center",
-    width: "100%",
-  },
-  buttonText: {
-    fontSize: theme.fontSize.card,
+  periodTextActive: {
     color: theme.colors.white,
+  },
+  calendarIcon: {
+    marginLeft: 4,
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.radius.card,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  statLabel: {
+    fontSize: theme.fontSize.subtitle,
+    color: theme.colors.muted,
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: theme.fontSize.section,
+    fontWeight: "800",
+    color: theme.colors.text,
+  },
+  plannerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.radius.card,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: 12,
+  },
+  plannerTitle: {
+    fontSize: theme.fontSize.card,
     fontWeight: "700",
+    color: theme.colors.text,
+  },
+  todayCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.radius.card,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: 20,
+  },
+  todayText: {
+    fontSize: theme.fontSize.card,
+    color: theme.colors.text,
+    fontWeight: "600",
+  },
+  sectionTitle: {
+    fontSize: theme.fontSize.section,
+    fontWeight: "800",
+    color: theme.colors.text,
+    marginBottom: 14,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 8,
+  },
+  emptyText: {
+    fontSize: theme.fontSize.card,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginTop: 8,
+  },
+  emptySubtext: {
+    fontSize: theme.fontSize.subtitle,
+    color: theme.colors.muted,
     textAlign: "center",
   },
-  horizontalSection: {
-    display: "flex",
-    flexDirection: "row",
-    gap: theme.spacing.gap,
-    justifyContent: "space-evenly",
+  startButton: {
+    backgroundColor: theme.colors.button,
+    borderRadius: theme.radius.button,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    marginTop: 12,
   },
-  icon: {
+  startButtonText: {
+    color: theme.colors.white,
+    fontWeight: "700",
+    fontSize: theme.fontSize.card,
+  },
+  progressCard: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: theme.colors.white,
-    borderRadius: 100,
-    padding: 16,
+    borderRadius: theme.radius.card,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  progressImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    backgroundColor: theme.colors.border,
+  },
+  progressInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  progressTitle: {
+    fontSize: theme.fontSize.card,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  progressTags: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 4,
+  },
+  tag: {
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  tagText: {
+    fontSize: 11,
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+  progressDate: {
+    fontSize: 11,
+    color: theme.colors.muted,
+  },
+  completedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  completedText: {
+    fontSize: 12,
+    color: "#059669",
+    fontWeight: "600",
   },
 });

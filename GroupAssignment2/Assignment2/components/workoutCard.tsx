@@ -7,10 +7,10 @@ type Props = {
   id: string;
   image?: any;
   title: string;
-  duration: number;
-  numberOfExercises: number;
+  durationMinutes: number;
+  exercises: { id: string }[];
   level: string;
-  kcal: string;
+  kcal: number;
   description: string;
 };
 
@@ -18,8 +18,8 @@ export default function WorkoutCard({
   id,
   image,
   title,
-  duration,
-  numberOfExercises,
+  durationMinutes,
+  exercises,
   level,
   kcal,
   description,
@@ -27,27 +27,17 @@ export default function WorkoutCard({
   return (
     <Pressable
       onPress={() =>
-        router.push({
-          pathname: "/programDescription/[details]",
-          params: {
-            details: id,
-            title,
-            duration,
-            numberOfExercises,
-            level,
-            kcal,
-            description,
-          },
-        })
+        router.push({ pathname: "/workout/[id]", params: { id } })
       }
     >
       <View style={styles.container}>
-        <Image source={image} style={styles.image} />
+        <Image source={image} style={styles.image} resizeMode="cover" />
         <View style={styles.textWrap}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.subtitle}>
-            {duration} min · {numberOfExercises} exercises
+            {durationMinutes} min · {exercises.length} exercises
           </Text>
+          <Text style={styles.level}>{level}</Text>
         </View>
       </View>
     </Pressable>
@@ -84,5 +74,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: theme.fontSize.subtitle,
     color: theme.colors.muted,
+  },
+  level: {
+    marginTop: 4,
+    fontSize: theme.fontSize.subtitle,
+    color: theme.colors.primary,
+    fontWeight: "600",
   },
 });
