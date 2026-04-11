@@ -1,13 +1,12 @@
 import { theme } from "@/styles/theme";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-
+import FoodCalendar from "@/components/foodCalendar";
 // TODO: implement Diary screen
 export default function DiaryScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Diary</Text>
-      <Text style={styles.subtitle}>Coming soon</Text>
+      <FoodCalendar />
     </View>
   );
 }

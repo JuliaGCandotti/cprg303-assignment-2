@@ -10,6 +10,8 @@ export const theme = {
     white: "#ffffff",
     black: "#000000",
     button: "#7a73ffff",
+    foodbtn: "#BB6351",
+    error: "#dc2626",
     },
     spacing: {
     screen: 20,
