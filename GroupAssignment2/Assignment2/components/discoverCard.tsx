@@ -1,61 +1,99 @@
-import { theme } from "@/styles/theme";
-import { router } from "expo-router";
-import React from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-
-type Program = {
-  id: string;
-  title: string;
-  durationMinutes: number;
-  level: string;
-  image: any;
-};
+import { theme } from '@/styles/theme'
+import { useRouter } from 'expo-router'
+import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native'
 
 type Props = {
-  program: Program;
-  width?: number | string; // NEW
-};
+  width?: number
+  program: {
+    id: string
+    title: string
+    durationMinutes: number
+    level: string
+    image: ImageSourcePropType | { uri: string }
+  }
+  variant?: 'horizontal' | 'grid'
+}
 
-export default function DiscoverCard({ program, width = "48%" }: Props) {
+export default function DiscoverCard({ width = 200, program, variant = 'horizontal' }: Props) {
+  const router = useRouter()
+  const isGrid = variant === 'grid'
+
   return (
     <Pressable
-      style={[styles.card, { width: width as any }]}
-      onPress={() =>
-        router.push({ pathname: "/workout/[id]", params: { id: program.id } })
-      }
+      onPress={() => router.push(`/workout/${program.id}`)}
+      style={[
+        styles.card,
+        isGrid ? styles.gridCard : { width },
+      ]}
     >
-      <View style={styles.imageWrapper}>
-        <Image source={program.image} style={styles.image} resizeMode="cover" />
+      <Image
+        source={program.image}
+        style={[styles.image, isGrid && styles.gridImage]}
+        resizeMode="cover"
+      />
+      <View style={styles.info}>
+        <Text style={styles.title} numberOfLines={2}>
+          {program.title}
+        </Text>
+        <View style={styles.meta}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{program.level}</Text>
+          </View>
+          <Text style={styles.duration}>· {program.durationMinutes} min</Text>
+        </View>
       </View>
-      <Text style={styles.title} numberOfLines={2}>
-        {program.title}
-      </Text>
-      <Text style={styles.subtitle}>
-        {program.level} · {program.durationMinutes} min
-      </Text>
     </Pressable>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: 16 },
-  imageWrapper: {
-    width: "100%",
-    aspectRatio: 16 / 9,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: theme.colors.border,
+  card: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.card,
+    overflow: 'hidden',
   },
-  image: { width: "100%", height: "100%" },
+  gridCard: {
+    flex: 1,
+    minWidth: 0,
+  },
+  image: {
+    width: '100%',
+    height: 130,
+  },
+  gridImage: {
+    height: 160,
+    borderRadius: theme.radius.card,
+  },
+  info: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
   title: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: theme.fontSize.card,
+    fontWeight: '600',
     color: theme.colors.text,
-    marginTop: 8,
+    marginBottom: 6,
   },
-  subtitle: {
-    fontSize: 12,
+  meta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  badge: {
+    backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: theme.radius.badge,
+  },
+  badgeText: {
+    fontSize: theme.fontSize.badge,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  duration: {
+    fontSize: theme.fontSize.badge,
     color: theme.colors.muted,
-    marginTop: 2,
+    fontWeight: '500',
   },
-});
+})

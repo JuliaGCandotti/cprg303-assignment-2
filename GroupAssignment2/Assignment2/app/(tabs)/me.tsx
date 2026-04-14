@@ -1,376 +1,251 @@
-import { theme } from "@/styles/theme";
-import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { theme } from '@/styles/theme'
+import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
+import {
+  Dimensions,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
+import { BarChart } from 'react-native-chart-kit'
 
-export default function Me() {
+const screenWidth = Dimensions.get('window').width - theme.spacing.screen * 2
+
+const chartData = {
+  labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  datasets: [{ data: [60, 90, 45, 70, 55, 80, 40] }],
+}
+
+export default function MeScreen() {
+  const router = useRouter()
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Me</Text>
-        <Pressable style={styles.premiumButton}>
-          <Text style={styles.premiumText}>👑 Go Premium</Text>
-        </Pressable>
-      </View>
+      <Text style={styles.heading}>Profile</Text>
 
-      {/* Profile */}
-      <View style={styles.profileSection}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={40} color="#999" />
+      {/* Hero cover + avatar popping out */}
+      <View style={styles.heroWrapper}>
+        <View style={styles.heroCover}>
+          <Image
+            source={{ uri: 'https://img.freepik.com/free-photo/gym-equipment_53876-14.jpg' }}
+            style={styles.coverImage}
+          />
         </View>
-        <Text style={styles.welcomeText}>Welcome, my friend!</Text>
-
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>1</Text>
-            <Text style={styles.statLabel}>Record</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Kcal</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>1</Text>
-            <Text style={styles.statLabel}>Minute</Text>
-          </View>
+        <View style={styles.avatarRow}>
+          <Image
+            source={{ uri: 'https://i.pravatar.cc/100?img=12' }}
+            style={styles.avatar}
+          />
         </View>
       </View>
 
-      {/* Menu Items */}
-      <View style={styles.menuCard}>
-        <Pressable style={styles.menuItem}>
-          <View style={styles.menuLeft}>
-            <Ionicons name="settings-outline" size={20} color={theme.colors.text} />
-            <Text style={styles.menuText}>Settings</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
-        </Pressable>
-
-        <View style={styles.divider} />
-
-        <Pressable style={styles.menuItem}>
-          <View style={styles.menuLeft}>
-            <Ionicons name="cloud-upload-outline" size={20} color={theme.colors.text} />
-            <View>
-              <Text style={styles.menuText}>Backup & Restore</Text>
-              <Text style={styles.menuSubtext}>Sign in and synchronize your data</Text>
-            </View>
-          </View>
-          <Ionicons name="sync-outline" size={18} color={theme.colors.muted} />
-        </Pressable>
-
-        <View style={styles.divider} />
-
-        <Pressable style={styles.menuItem}>
-          <View style={styles.menuLeft}>
-            <Ionicons name="musical-note-outline" size={20} color={theme.colors.text} />
-            <Text style={styles.menuText}>My Music</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
-        </Pressable>
-
-        <View style={styles.divider} />
-
-        <Pressable style={styles.menuItem}>
-          <View style={styles.menuLeft}>
-            <Ionicons name="person-outline" size={20} color={theme.colors.text} />
-            <Text style={styles.menuText}>New Version</Text>
-          </View>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>1</Text>
-          </View>
+      {/* Name + settings */}
+      <View style={styles.nameRow}>
+        <View style={{ flex: 1 }} />
+        <View style={styles.nameCenter}>
+          <Text style={styles.name}>Makise Kurisu</Text>
+          <Text style={styles.location}>Canada, Calgary  ·  Basic Member</Text>
+        </View>
+        <Pressable
+          style={styles.gearBtn}
+          onPress={() => router.push('/account-settings/page')}
+        >
+          <Ionicons name="settings-outline" size={22} color={theme.colors.text} />
         </Pressable>
       </View>
 
-      {/* Weight Section */}
-      <View style={styles.weightCard}>
-        <View style={styles.weightHeader}>
-          <View>
-            <View style={styles.weightTitleRow}>
-              <Text style={styles.weightTitle}>Weight</Text>
-            </View>
-            <View style={styles.goalRow}>
-              <Text style={styles.goalText}>Goal: 65.0 kg</Text>
-              <Ionicons name="pencil" size={12} color={theme.colors.muted} style={{ marginLeft: 4 }} />
-            </View>
+      {/* Progress Report card */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.reportLabel}>
+            <Ionicons name="stats-chart" size={14} color={theme.colors.primary} />
+            <Text style={styles.reportTitle}>Prog. Report</Text>
           </View>
-          <View style={styles.weightValueRow}>
-            <Text style={styles.weightValue}>67.5</Text>
-            <Text style={styles.weightUnit}> kg</Text>
-            <Ionicons name="pencil" size={12} color={theme.colors.muted} style={{ marginLeft: 4 }} />
-          </View>
+          <Text style={styles.weekly}>Weekly</Text>
         </View>
 
-        {/* Simple Chart */}
-        <View style={styles.chart}>
-          {/* Y-axis labels */}
-          <View style={styles.yAxis}>
-            {["68.0", "67.8", "67.5", "67.2", "67.0"].map((label) => (
-              <Text key={label} style={styles.axisLabel}>{label}</Text>
-            ))}
-          </View>
+        <BarChart
+          data={chartData}
+          width={screenWidth - 32}
+          height={160}
+          yAxisLabel=""
+          yAxisSuffix=""
+          chartConfig={{
+            backgroundGradientFrom: '#fff',
+            backgroundGradientTo: '#fff',
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(193, 68, 14, ${opacity})`,
+            labelColor: () => theme.colors.muted,
+            barPercentage: 0.5,
+            propsForBackgroundLines: {
+              strokeDasharray: '',
+              stroke: theme.colors.border,
+              strokeWidth: 0.5,
+            },
+          }}
+          style={{ borderRadius: 8, marginLeft: -16 }}
+          showBarTops={false}
+          fromZero
+          withInnerLines
+        />
+      </View>
 
-          {/* Chart area */}
-          <View style={styles.chartArea}>
-            {/* Grid lines */}
-            {[0, 1, 2, 3, 4].map((i) => (
-              <View key={i} style={[styles.gridLine, { top: `${i * 25}%` }]} />
-            ))}
-
-            {/* Goal line */}
-            <View style={styles.goalLine}>
-              <Text style={styles.goalLineLabel}>← Goal: 65.0 kg</Text>
-            </View>
-
-            {/* Data point */}
-            <View style={styles.dataPoint}>
-              <View style={styles.tooltip}>
-                <Text style={styles.tooltipText}>67.5</Text>
-              </View>
-              <View style={styles.dot} />
-            </View>
-
-            {/* X-axis */}
-            <View style={styles.xAxis}>
-              {["13", "14", "15", "16", "17", "18", "19"].map((day) => (
-                <Text key={day} style={styles.axisLabel}>{day}</Text>
-              ))}
-            </View>
-          </View>
+      {/* Stats row */}
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Text style={styles.statIcon}>🏅</Text>
+          <Text style={styles.statValue}>17<Text style={styles.statUnit}>yr</Text></Text>
+          <Text style={styles.statLabel}>Current Age</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statIcon}>🏋️</Text>
+          <Text style={styles.statValue}>68<Text style={styles.statUnit}>kg</Text></Text>
+          <Text style={styles.statLabel}>Weight</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statIcon}>⭐</Text>
+          <Text style={styles.statValue}>978<Text style={styles.statUnit}>kalc</Text></Text>
+          <Text style={styles.statLabel}>Daily Intake</Text>
         </View>
       </View>
     </ScrollView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.bg,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: theme.spacing.screen,
-    paddingTop: 50,
-  },
-  headerTitle: {
+  container: { flex: 1, backgroundColor: theme.colors.bg },
+  content: { paddingBottom: 40 },
+  heading: {
     fontSize: theme.fontSize.title,
-    fontWeight: "800",
+    fontWeight: '800',
     color: theme.colors.text,
-  },
-  premiumButton: {
-    backgroundColor: "#f5f5f5",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  premiumText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  profileSection: {
-    alignItems: "center",
-    paddingVertical: 16,
-  },
-  avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "#e8e8e8",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  welcomeText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.text,
-    marginBottom: 20,
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 40,
-  },
-  stat: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: theme.colors.text,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    marginTop: 2,
-  },
-  menuCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    marginHorizontal: theme.spacing.screen,
-    marginTop: 20,
-    padding: 4,
-  },
-  menuItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  menuLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  menuText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  menuSubtext: {
-    fontSize: 12,
-    color: theme.colors.muted,
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginHorizontal: 16,
-  },
-  badge: {
-    backgroundColor: "#ff3b30",
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  badgeText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  weightCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    margin: theme.spacing.screen,
-    padding: 16,
-  },
-  weightHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    textAlign: 'center',
+    paddingTop: 20,
     marginBottom: 16,
   },
-  weightTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  heroWrapper: {
+    marginHorizontal: theme.spacing.screen,
+    marginBottom: 0,
   },
-  weightTitle: {
-    fontSize: 18,
-    fontWeight: "800",
+  heroCover: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    height: 140,
+    backgroundColor: theme.colors.card,
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  avatarRow: {
+    alignItems: 'center',
+    marginTop: -36,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 4,
+    borderColor: theme.colors.bg,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 44,
+    marginBottom: 20,
+    paddingHorizontal: theme.spacing.screen,
+  },
+  nameCenter: {
+    flex: 2,
+    alignItems: 'center',
+  },
+  name: {
+    fontSize: 17,
+    fontWeight: '700',
     color: theme.colors.text,
   },
-  goalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  goalText: {
-    fontSize: 13,
+  location: {
+    fontSize: 12,
     color: theme.colors.muted,
+    marginTop: 2,
   },
-  weightValueRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-  },
-  weightValue: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: theme.colors.text,
-  },
-  weightUnit: {
-    fontSize: 14,
-    color: theme.colors.muted,
-  },
-  chart: {
-    flexDirection: "row",
-    height: 180,
-  },
-  yAxis: {
-    justifyContent: "space-between",
-    paddingRight: 8,
-  },
-  chartArea: {
+  gearBtn: {
     flex: 1,
-    position: "relative",
+    alignItems: 'flex-end',
   },
-  gridLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: "#f0f0f0",
+  card: {
+    marginHorizontal: theme.spacing.screen,
+    backgroundColor: theme.colors.bg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 16,
+    marginBottom: 16,
   },
-  goalLine: {
-    position: "absolute",
-    bottom: "15%",
-    left: 0,
-    right: 0,
-    borderTopWidth: 1,
-    borderStyle: "dashed",
-    borderColor: theme.colors.primary,
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  goalLineLabel: {
-    position: "absolute",
-    right: 0,
-    top: 4,
-    fontSize: 10,
-    color: theme.colors.primary,
+  reportLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  dataPoint: {
-    position: "absolute",
-    top: "40%",
-    left: "40%",
-    alignItems: "center",
+  reportTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.text,
   },
-  tooltip: {
-    backgroundColor: "#2d2d3a",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginBottom: 6,
+  weekly: {
+    fontSize: 12,
+    color: theme.colors.muted,
   },
-  tooltipText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "700",
+  statsRow: {
+    flexDirection: 'row',
+    marginHorizontal: theme.spacing.screen,
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    paddingVertical: 16,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: theme.colors.primary,
-    borderWidth: 2,
-    borderColor: "#fff",
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
   },
-  xAxis: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "space-between",
+  statIcon: {
+    fontSize: 20,
+    marginBottom: 4,
   },
-  axisLabel: {
+  statValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  statUnit: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.colors.muted,
+  },
+  statLabel: {
     fontSize: 11,
     color: theme.colors.muted,
+    marginTop: 2,
   },
-});
+  statDivider: {
+    width: 1,
+    backgroundColor: theme.colors.border,
+    marginVertical: 4,
+  },
+})

@@ -1,49 +1,63 @@
-import React from "react";
-import { StyleSheet, Text, View, ScrollView, Pressable } from "react-native";
-import { theme } from "../styles/theme";
+import { theme } from '@/styles/theme'
+import { ReactNode } from 'react'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 type Props = {
-  title: string;
-  children: React.ReactNode;
-};
+  title: string
+  showSeeAll?: boolean
+  onSeeAll?: () => void
+  children: ReactNode
+}
 
-export default function HorizontalSection({ title, children }: Props) {
+export default function HorizontalSection({
+  title,
+  showSeeAll = true,
+  onSeeAll,
+  children,
+}: Props) {
   return (
-    <View style={styles.container}>
+    <View style={styles.section}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
+        {showSeeAll && (
+          <Pressable onPress={onSeeAll}>
+            <Text style={styles.seeAll}>See all</Text>
+          </Pressable>
+        )}
       </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={styles.row}
       >
         {children}
       </ScrollView>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: theme.spacing.gap,
+  section: {
+    marginBottom: 24,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
   },
   title: {
     fontSize: theme.fontSize.section,
-    fontWeight: "800",
+    fontWeight: '700',
     color: theme.colors.text,
   },
-  viewAll: {
-    fontSize: theme.fontSize.subtitle,
-    color: theme.colors.muted,
+  seeAll: {
+    fontSize: theme.fontSize.small,
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
-  scroll: {
-    gap: theme.spacing.gap,
+  row: {
+    gap: 12,
+    paddingRight: 4,
   },
-});
+})
