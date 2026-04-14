@@ -11,10 +11,15 @@ type Program = {
   image: any;
 };
 
-export default function DiscoverCard({ program }: { program: Program }) {
+type Props = {
+  program: Program;
+  width?: number | string; // NEW
+};
+
+export default function DiscoverCard({ program, width = "48%" }: Props) {
   return (
     <Pressable
-      style={styles.card}
+      style={[styles.card, { width: width as any }]}
       onPress={() =>
         router.push({ pathname: "/workout/[id]", params: { id: program.id } })
       }
@@ -33,10 +38,7 @@ export default function DiscoverCard({ program }: { program: Program }) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    width: "48%",
-    marginBottom: 16,
-  },
+  card: { marginBottom: 16 },
   imageWrapper: {
     width: "100%",
     aspectRatio: 16 / 9,
@@ -44,10 +46,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: theme.colors.border,
   },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
+  image: { width: "100%", height: "100%" },
   title: {
     fontSize: 14,
     fontWeight: "700",

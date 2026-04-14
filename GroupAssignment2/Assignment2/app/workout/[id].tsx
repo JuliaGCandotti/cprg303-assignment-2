@@ -1,9 +1,11 @@
+import { getWorkoutById, type Workout } from "@/data/workouts";
 import { theme } from "@/styles/theme";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // please run the following to remove error: npm install @react-native-async-storage/async-storage
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -12,13 +14,15 @@ import {
   Text,
   View,
 } from "react-native";
-import { getWorkoutById } from "@/data/workouts";
 
 type TimerState = "idle" | "running" | "done";
 
 export default function WorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const workout = getWorkoutById(id);
+
+  const [workout, setWorkout] = useState<Workout | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [timerStates, setTimerStates] = useState<Record<string, TimerState>>({});
   const [timeLeft, setTimeLeft] = useState<Record<string, number>>({});
@@ -26,11 +30,39 @@ export default function WorkoutScreen() {
   const intervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
   useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    getWorkoutById(id)
+      .then((w) => setWorkout(w))
+      .catch((e) => setLoadError(e.message ?? "Failed to load workout"))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  useEffect(() => {
     return () => {
-      // cleanup all intervals on unmount
       Object.values(intervals.current).forEach(clearInterval);
     };
   }, []);
+
+  // ---- loading / error / not-found states ----
+  if (loading) {
+    return (
+      <View style={styles.errorContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{loadError}</Text>
+        <Pressable onPress={() => router.back()}>
+          <Text style={styles.errorBack}>← Go back</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (!workout) {
     return (
@@ -43,10 +75,9 @@ export default function WorkoutScreen() {
     );
   }
 
+  // ---- handlers ----
   const startTimer = (exerciseId: string, durationSeconds: number) => {
-    // Don't restart if already done
     if (timerStates[exerciseId] === "done") return;
-    // Clear any existing interval for this exercise
     if (intervals.current[exerciseId]) {
       clearInterval(intervals.current[exerciseId]);
     }
@@ -68,9 +99,7 @@ export default function WorkoutScreen() {
   };
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, "0");
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
@@ -108,16 +137,11 @@ export default function WorkoutScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Hero Image */}
       <View style={styles.heroContainer}>
-        <Image
-          source={workout.image}
-          style={styles.heroImage}
-          resizeMode="cover"
-        />
+        <Image source={workout.image} style={styles.heroImage} resizeMode="cover" />
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color={theme.colors.white} />
         </Pressable>
 
-        {/* Stats pill */}
         <View style={styles.statsPill}>
           <View style={styles.pillStat}>
             <Ionicons name="time-outline" size={16} color={theme.colors.text} />
@@ -133,36 +157,26 @@ export default function WorkoutScreen() {
         </View>
       </View>
 
-      {/* Content */}
       <View style={styles.content}>
         <Text style={styles.title}>{workout.title}</Text>
         <Text style={styles.description}>{workout.description}</Text>
 
-        {/* Rounds */}
         <Text style={styles.sectionTitle}>
           Rounds ({workout.exercises.length})
         </Text>
 
         {workout.exercises.map((exercise) => {
           const state = timerStates[exercise.id] ?? "idle";
-          const remaining =
-            timeLeft[exercise.id] ?? exercise.durationSeconds;
+          const remaining = timeLeft[exercise.id] ?? exercise.durationSeconds;
           const isDone = state === "done";
           const isRunning = state === "running";
 
           return (
             <View
               key={exercise.id}
-              style={[
-                styles.exerciseCard,
-                isDone && styles.exerciseCardDone,
-              ]}
+              style={[styles.exerciseCard, isDone && styles.exerciseCardDone]}
             >
-              <Image
-                source={exercise.image}
-                style={styles.exerciseImage}
-                resizeMode="cover"
-              />
+              <Image source={exercise.image} style={styles.exerciseImage} resizeMode="cover" />
               <View style={styles.exerciseInfo}>
                 <Text style={[styles.exerciseName, isDone && styles.exerciseNameDone]}>
                   {exercise.name}
@@ -174,34 +188,22 @@ export default function WorkoutScreen() {
                 </Text>
               </View>
               <Pressable
-                style={[
-                  styles.startButton,
-                  isDone && styles.startButtonDone,
-                ]}
+                style={[styles.startButton, isDone && styles.startButtonDone]}
                 onPress={() =>
                   !isDone && startTimer(exercise.id, exercise.durationSeconds)
                 }
                 disabled={isDone}
               >
-                {isDone ? (
-                  <Ionicons
-                    name="checkmark"
-                    size={20}
-                    color={theme.colors.white}
-                  />
-                ) : (
-                  <Ionicons
-                    name="play"
-                    size={20}
-                    color={theme.colors.white}
-                  />
-                )}
+                <Ionicons
+                  name={isDone ? "checkmark" : "play"}
+                  size={20}
+                  color={theme.colors.white}
+                />
               </Pressable>
             </View>
           );
         })}
 
-        {/* Complete Workout Button */}
         <Pressable
           style={[styles.completeButton, completed && styles.completeButtonDone]}
           onPress={handleCompleteWorkout}
@@ -223,34 +225,22 @@ export default function WorkoutScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.bg,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.bg },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: theme.spacing.screen,
+    backgroundColor: theme.colors.bg,
   },
   errorText: {
     fontSize: theme.fontSize.section,
     color: theme.colors.text,
     marginBottom: 12,
   },
-  errorBack: {
-    fontSize: theme.fontSize.card,
-    color: theme.colors.primary,
-  },
-  heroContainer: {
-    width: "100%",
-    height: 280,
-    position: "relative",
-  },
-  heroImage: {
-    width: "100%",
-    height: "100%",
-  },
+  errorBack: { fontSize: theme.fontSize.card, color: theme.colors.primary },
+  heroContainer: { width: "100%", height: 280, position: "relative" },
+  heroImage: { width: "100%", height: "100%" },
   backButton: {
     position: "absolute",
     top: 48,
@@ -275,27 +265,11 @@ const styles = StyleSheet.create({
     elevation: 4,
     gap: 32,
   },
-  pillStat: {
-    alignItems: "center",
-    gap: 2,
-  },
-  pillLabel: {
-    fontSize: 11,
-    color: theme.colors.muted,
-  },
-  pillValue: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.text,
-  },
-  pillDivider: {
-    width: 1,
-    backgroundColor: theme.colors.border,
-  },
-  content: {
-    padding: theme.spacing.screen,
-    paddingTop: 44,
-  },
+  pillStat: { alignItems: "center", gap: 2 },
+  pillLabel: { fontSize: 11, color: theme.colors.muted },
+  pillValue: { fontSize: 14, fontWeight: "700", color: theme.colors.text },
+  pillDivider: { width: 1, backgroundColor: theme.colors.border },
+  content: { padding: theme.spacing.screen, paddingTop: 44 },
   title: {
     fontSize: theme.fontSize.title,
     fontWeight: "800",
@@ -327,37 +301,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  exerciseCardDone: {
-    backgroundColor: "#d1fae5",
-    borderColor: "#6ee7b7",
-  },
+  exerciseCardDone: { backgroundColor: "#d1fae5", borderColor: "#6ee7b7" },
   exerciseImage: {
     width: 64,
     height: 64,
     borderRadius: 10,
     backgroundColor: theme.colors.border,
   },
-  exerciseInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
+  exerciseInfo: { flex: 1, marginLeft: 12 },
   exerciseName: {
     fontSize: theme.fontSize.card,
     fontWeight: "700",
     color: theme.colors.text,
   },
-  exerciseNameDone: {
-    color: "#065f46",
-  },
+  exerciseNameDone: { color: "#065f46" },
   exerciseDuration: {
     fontSize: theme.fontSize.subtitle,
     color: theme.colors.muted,
     marginTop: 4,
     fontVariant: ["tabular-nums"],
   },
-  exerciseDurationDone: {
-    color: "#065f46",
-  },
+  exerciseDurationDone: { color: "#065f46" },
   startButton: {
     backgroundColor: theme.colors.primary,
     borderRadius: 22,
@@ -366,9 +330,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  startButtonDone: {
-    backgroundColor: "#059669",
-  },
+  startButtonDone: { backgroundColor: "#059669" },
   completeButton: {
     flexDirection: "row",
     backgroundColor: theme.colors.button,
@@ -379,9 +341,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 40,
   },
-  completeButtonDone: {
-    backgroundColor: "#059669",
-  },
+  completeButtonDone: { backgroundColor: "#059669" },
   completeButtonText: {
     fontSize: theme.fontSize.card,
     fontWeight: "700",

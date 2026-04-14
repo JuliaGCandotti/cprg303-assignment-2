@@ -1,88 +1,166 @@
-import DiscoverCard from "@/components/discoverCard";
-import { theme } from "@/styles/theme";
-import { WORKOUTS } from "@/data/workouts";
-import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import DiscoverCard from '@/components/discoverCard'
+import HorizontalSection from '@/components/horizontalSection'
+import { supabase } from '@/lib/supabase'
+import { theme } from '@/styles/theme'
+import { useEffect, useState } from 'react'
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native'
 
-const CATEGORY_LABELS: Record<string, string> = {
-  abs: "Abs & Core",
-  cardio: "Cardio & Fat Loss",
-  arms: "Arms & Upper Body",
-  legs: "Legs & Glutes",
-  "full-body": "Full Body",
-  challenge: "Challenges",
-};
+type Workout = {
+  id: string
+  title: string
+  description: string
+  level: string
+  duration_minutes: number
+  image_url: string
+  category: string
+}
 
-// Group workouts by category, excluding challenges from main list
-const mainWorkouts = WORKOUTS.filter((w) => w.category !== "challenge");
+export default function DiscoverScreen() {
+  const [workouts, setWorkouts] = useState<Workout[]>([])
+  const [categories, setCategories] = useState<string[]>([])
+  const [activeCategory, setActiveCategory] = useState<string>('All')
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
 
-const grouped = mainWorkouts.reduce<Record<string, typeof mainWorkouts>>(
-  (acc, workout) => {
-    const cat = workout.category;
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(workout);
-    return acc;
-  },
-  {}
-);
+  useEffect(() => {
+    async function fetchWorkouts() {
+      const { data } = await supabase
+        .from('workouts')
+        .select('id, title, description, level, duration_minutes, image_url, category')
+        .order('category')
 
-export default function Discover() {
+      if (data) {
+        setWorkouts(data as Workout[])
+        setCategories(['All', ...Array.from(new Set(data.map(w => w.category)))])
+      }
+      setLoading(false)
+    }
+    fetchWorkouts()
+  }, [])
+
+  const filtered = workouts.filter(w => {
+    const matchCat = activeCategory === 'All' || w.category === activeCategory
+    const matchSearch = w.title.toLowerCase().includes(search.toLowerCase())
+    return matchCat && matchSearch
+  })
+
+  const grouped = filtered.reduce<Record<string, Workout[]>>((acc, w) => {
+    if (!acc[w.category]) acc[w.category] = []
+    acc[w.category].push(w)
+    return acc
+  }, {})
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={theme.colors.primary} />
+      </View>
+    )
+  }
+
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Discover</Text>
+    <View style={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Text style={styles.heading}>Discover</Text>
 
-      {Object.entries(grouped).map(([category, workouts]) => (
-        <View key={category} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {CATEGORY_LABELS[category] ?? category}
-            </Text>
-            <Text style={styles.viewAll}>View all</Text>
-          </View>
-          <View style={styles.grid}>
-            {workouts.map((workout) => (
-              <DiscoverCard key={workout.id} program={workout} />
-            ))}
-          </View>
+        {/* Search */}
+        <View style={styles.searchWrap}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search workouts..."
+            placeholderTextColor={theme.colors.muted}
+            value={search}
+            onChangeText={setSearch}
+          />
         </View>
-      ))}
-    </ScrollView>
-  );
+
+        {/* Category pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tagContainer}
+        >
+          {categories.map(cat => {
+            const active = activeCategory === cat
+            return (
+              <Pressable
+                key={cat}
+                onPress={() => setActiveCategory(cat)}
+                style={[styles.tag, active && styles.tagActive]}
+              >
+                <Text style={[styles.tagText, active && styles.tagTextActive]}>
+                  {cat}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </ScrollView>
+
+        {Object.entries(grouped).map(([cat, items]) => (
+          <HorizontalSection key={cat} title={cat}>
+            {items.map(item => (
+              <DiscoverCard
+                key={item.id}
+                width={220}
+                program={{
+                  id: item.id,
+                  title: item.title,
+                  durationMinutes: item.duration_minutes,
+                  level: item.level,
+                  image: { uri: item.image_url },
+                }}
+              />
+            ))}
+          </HorizontalSection>
+        ))}
+      </ScrollView>
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.bg,
-    padding: theme.spacing.screen,
-  },
-  header: {
+  container: { flex: 1, backgroundColor: theme.colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.bg },
+  scrollContent: { paddingHorizontal: theme.spacing.screen, paddingTop: 16, paddingBottom: 32 },
+  heading: {
     fontSize: theme.fontSize.title,
-    fontWeight: "800",
+    fontWeight: '800',
     color: theme.colors.text,
-    marginBottom: 24,
+    marginBottom: 16,
   },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+  searchWrap: { marginBottom: 16 },
+  searchInput: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: theme.fontSize.card,
     color: theme.colors.text,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  viewAll: {
-    fontSize: 14,
-    color: theme.colors.primary,
+  tagContainer: { gap: 8, paddingBottom: 20 },
+  tag: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.card,
   },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-});
+  tagActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  tagText: { fontSize: 13, color: theme.colors.muted, fontWeight: '500' },
+  tagTextActive: { color: theme.colors.white, fontWeight: '600' },
+  cardWrap: { width: 180 },
+})
