@@ -12,6 +12,7 @@ export type FoodLog = {
   note?: string;
 };
 
+
 // Mock data - in a real app this would come from a database
 export const initialFoodLogs: FoodLog[] = [
   {
