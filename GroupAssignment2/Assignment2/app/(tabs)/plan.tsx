@@ -1,6 +1,3 @@
-import DiscoverCard from "@/components/discoverCard";
-import HorizontalSection from "@/components/horizontalSection";
-import WorkoutCard from "@/components/workoutCard";
 import { getAllWorkouts, type Workout } from "@/data/workouts";
 import { theme } from "@/styles/theme";
 import { router } from "expo-router";
@@ -16,12 +13,7 @@ import {
 } from "react-native";
 
 const DAY_1_WORKOUT_ID = "lower-body-training";
-const BEST_FOR_YOU_IDS = [
-  "belly-fat-burner",
-  "lose-fat",
-  "plank",
-  "build-wider-biceps",
-];
+const BEST_FOR_YOU_IDS = ["belly-fat-burner", "lose-fat", "plank", "build-wider-biceps"];
 const CHALLENGE_IDS = ["challenge-plank", "challenge-sprint", "challenge-squat"];
 
 export default function PlanScreen() {
@@ -36,9 +28,8 @@ export default function PlanScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  const goToWorkout = (id: string) => {
+  const goToWorkout = (id: string) =>
     router.push({ pathname: "/workout/[id]", params: { id } });
-  };
 
   if (loading) {
     return (
@@ -64,61 +55,78 @@ export default function PlanScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <Text style={styles.header}>FitMate</Text>
 
-      {/* DAY 1 — featured card stays inline (custom layout) */}
+      {/* DAY 1 */}
       {day1 && (
         <Pressable style={styles.dayCard} onPress={() => goToWorkout(day1.id)}>
           <Image source={day1.image} style={styles.dayImage} resizeMode="cover" />
           <View style={styles.dayOverlay}>
             <View>
-              <Text style={styles.dayTitle}>Current Workout</Text>
+              <Text style={styles.dayTitle}>DAY 1</Text>
               <Text style={styles.daySubtitle}>
                 {day1.durationMinutes} min | {day1.exercises.length} exercises
               </Text>
             </View>
-            <Pressable
-              style={styles.startButton}
-              onPress={() => goToWorkout(day1.id)}
-            >
+            <Pressable style={styles.startButton} onPress={() => goToWorkout(day1.id)}>
               <Text style={styles.startText}>Start</Text>
             </Pressable>
           </View>
         </Pressable>
       )}
 
-      {/* Best for you — uses DiscoverCard (2-col grid) */}
+      {/* Best for you — grid compacto */}
       <Text style={styles.sectionTitle}>Best for you</Text>
       <View style={styles.grid}>
         {bestForYou.map((workout) => (
-          <DiscoverCard
+          <Pressable
             key={workout.id}
-            program={{
-              id: workout.id,
-              title: workout.title,
-              durationMinutes: workout.durationMinutes,
-              level: workout.level,
-              image: workout.image,
-            }}
-          />
+            style={styles.gridCard}
+            onPress={() => goToWorkout(workout.id)}
+          >
+            <Image source={workout.image} style={styles.gridImage} resizeMode="cover" />
+            <Text style={styles.gridTitle} numberOfLines={1}>
+              {workout.title}
+            </Text>
+            <View style={styles.gridTags}>
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{workout.level}</Text>
+              </View>
+              <Text style={styles.tagDot}>·</Text>
+              <Text style={styles.tagPlain}>{workout.durationMinutes} min</Text>
+            </View>
+          </Pressable>
         ))}
       </View>
 
-      {/* Challenges — uses WorkoutCard (horizontal row) */}
-      <HorizontalSection title="Challenge">
+      {/* Challenge — cards compactos horizontais, sem "See all" */}
+      <Text style={styles.sectionTitle}>Challenge</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.challengeScroll}
+      >
         {challenges.map((challenge) => (
-          <View key={challenge.id} style={styles.challengeWrap}>
-            <WorkoutCard
-              id={challenge.id}
-              image={challenge.image}
-              title={challenge.title}
-              durationMinutes={challenge.durationMinutes}
-              exercises={challenge.exercises}
-              level={challenge.level}
-              kcal={challenge.kcal}
-              description={challenge.description}
+          <Pressable
+            key={challenge.id}
+            style={styles.challengeCard}
+            onPress={() => goToWorkout(challenge.id)}
+          >
+            <Image
+              source={challenge.image}
+              style={styles.challengeImage}
+              resizeMode="cover"
             />
-          </View>
+            <View style={styles.challengeInfo}>
+              <Text style={styles.challengeTitle} numberOfLines={1}>
+                {challenge.title}
+              </Text>
+              <Text style={styles.challengeSub}>
+                {challenge.durationMinutes} min · {challenge.exercises.length} exercises
+              </Text>
+              <Text style={styles.challengeLevel}>{challenge.level}</Text>
+            </View>
+          </Pressable>
         ))}
-      </HorizontalSection>
+      </ScrollView>
     </ScrollView>
   );
 }
@@ -137,7 +145,14 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: 20,
   },
-  dayCard: { borderRadius: theme.radius.card, overflow: "hidden", marginBottom: 28, height: 220 },
+
+  // DAY 1
+  dayCard: {
+    borderRadius: theme.radius.card,
+    overflow: "hidden",
+    marginBottom: 28,
+    height: 220,
+  },
   dayImage: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%" },
   dayOverlay: {
     flex: 1,
@@ -146,20 +161,83 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   dayTitle: { fontSize: 42, fontWeight: "900", color: theme.colors.white },
-  daySubtitle: { fontSize: theme.fontSize.subtitle, color: theme.colors.white, fontWeight: "600" },
+  daySubtitle: {
+    fontSize: theme.fontSize.subtitle,
+    color: theme.colors.white,
+    fontWeight: "600",
+  },
   startButton: {
     backgroundColor: theme.colors.white,
     borderRadius: theme.radius.button,
     paddingVertical: 14,
     alignItems: "center",
   },
-  startText: { fontSize: theme.fontSize.card, fontWeight: "700", color: theme.colors.text },
+  startText: {
+    fontSize: theme.fontSize.card,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+
+  // Best for you
   sectionTitle: {
     fontSize: theme.fontSize.section,
     fontWeight: "800",
     color: theme.colors.text,
     marginBottom: 14,
   },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 28 },
-  challengeWrap: { width: 280, marginRight: 12 },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 28,
+  },
+  gridCard: { width: "48%", marginBottom: 16 },
+  gridImage: {
+    width: "100%",
+    height: 110,
+    borderRadius: 12,
+    backgroundColor: theme.colors.border,
+    marginBottom: 8,
+  },
+  gridTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  gridTags: { flexDirection: "row", alignItems: "center", gap: 4 },
+  tag: {
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  tagText: { fontSize: 11, color: theme.colors.primary, fontWeight: "600" },
+  tagDot: { fontSize: 11, color: theme.colors.muted },
+  tagPlain: { fontSize: 11, color: theme.colors.muted },
+
+  // Challenges
+  challengeScroll: { gap: 12, paddingBottom: 24 },
+  challengeCard: {
+    width: 200,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.radius.card,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  challengeImage: { width: "100%", height: 90 },
+  challengeInfo: { padding: 10 },
+  challengeTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  challengeSub: { fontSize: 11, color: theme.colors.muted, marginBottom: 4 },
+  challengeLevel: {
+    fontSize: 11,
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
 });
