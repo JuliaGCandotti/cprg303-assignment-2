@@ -18,9 +18,9 @@ import {
 import Ionicons from "@expo/vector-icons/build/Ionicons";
 import DayCellView from "@/components/dayCellView";
 import { DayCell } from "@/components/dayCellView";
+import AddFoodModal from "./addFoodModal";
+import FoodDetailModal from "./foodDetailModal";
 
-const GEMINI_API_KEY = "AIzaSyAwefNVDwpKWIT8TV8HA4TrP4SxPTV8nKo"; // Replace with your key
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FoodLog {
@@ -98,59 +98,6 @@ function addFoodLog(log: FoodLog): void {
   }
 }
 
-// ─── AI food recognition ───────────────────────────────────────────────────────
-
-interface AINutrition {
-  description: string;
-  calories: number;
-  carbs: number;
-  protein: number;
-  fat: number;
-}
-
-/**
- * Sends a base64 image to the Anthropic API and asks Claude to estimate
- * the nutritional content. Returns parsed macros or throws on failure.
- */
-async function analyzeImageWithAI(base64: string): Promise<AINutrition> {
-  const payload = {
-    contents: [
-      {
-        parts: [
-          {
-            text: 'Analyze this food image. Provide a rough estimate of calories, protein, carbs, and fat. Return ONLY a JSON object: {"item": "name", "calories": 0, "protein": "0g", "carbs": "0g", "fat": "0g"}',
-          },
-          {
-            inline_data: {
-              mime_type: "image/jpeg",
-              data: base64,
-            },
-          },
-        ],
-      },
-    ],
-  };
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error ${response.status}`);
-  }
-
-  const data = await response.json();
-  const textResponse = data.candidates[0].content.parts[0].text;
-
-  // Strip any accidental markdown fences
-  const clean = textResponse.replace(/```json|```/g, "").trim();
-  const parsed: AINutrition = JSON.parse(clean);
-  return parsed;
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const DAY_SIZE = Math.floor((SCREEN_WIDTH - 32 - 6 * 4) / 7);
 
@@ -192,20 +139,16 @@ const emptyForm = (): FoodForm => ({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-function FoodCalendar() {
-  const today = new Date(2026, 4, 10);
-  const [current, setCurrent] = useState(new Date(2026, 4, 1));
+function FoodCalendar({ selected }: { selected?: Date }) {
+  const today = new Date();
+  const [current, setCurrent] = useState(today);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  // const [modalVisible, setModalVisible] = useState(false);
   const [addFoodVisible, setAddFoodVisible] = useState(false);
+  const [foodDetailVisible, setFoodDetailVisible] = useState(false);
 
   // Force re-render after saving a new log
   const [version, setVersion] = useState(0);
-
-  // Form
-  const [form, setForm] = useState<FoodForm>(emptyForm());
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
 
   // AI state
   const [aiLoading, setAiLoading] = useState(false);
@@ -235,7 +178,8 @@ function FoodCalendar() {
       return;
     }
     setSelectedDate(cell.date);
-    setModalVisible(true);
+    setFoodDetailVisible(true);
+    // setModalVisible(true);
   }, []);
 
   const handlePrevMonth = () => setCurrent(new Date(year, month - 1, 1));
@@ -243,139 +187,16 @@ function FoodCalendar() {
 
   const selectedLog = selectedDate ? getFoodLog(selectedDate) : null;
 
-  // ── Image picker ────────────────────────────────────────────────────────────
-
-  const handleImagePick = () => {
-    Alert.alert("Add Food Photo", "Choose an option", [
-      { text: "Camera", onPress: () => openPicker("camera") },
-      { text: "Gallery", onPress: () => openPicker("library") },
-      { text: "Cancel", style: "cancel" },
-    ]);
-  };
-
-  const openPicker = async (type: "camera" | "library") => {
-    try {
-      if (type === "camera") {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== "granted") {
-          Alert.alert("Permission Denied", "Camera access is required.");
-          return;
-        }
-      } else {
-        const { status } =
-          await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== "granted") {
-          Alert.alert("Permission Denied", "Gallery access is required.");
-          return;
-        }
-      }
-
-      const result =
-        type === "camera"
-          ? await ImagePicker.launchCameraAsync({
-              mediaTypes: "images",
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.7,
-              base64: true,
-            })
-          : await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: "images",
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.7,
-              base64: true,
-            });
-
-      if (!result.canceled) {
-        const asset = result.assets[0];
-        setPhotoUri(asset.uri);
-        setPhotoBase64(asset.base64 ?? null);
-        setAiError(null);
-
-        // Automatically kick off AI analysis if we have base64 data
-        if (asset.base64) {
-          await runAIAnalysis(asset.base64);
-        }
-      }
-    } catch (error) {
-      Alert.alert("Error", "An error occurred while picking the image.");
-      console.error("ImagePicker Error:", error);
-    }
-  };
-
-  // ── AI analysis ─────────────────────────────────────────────────────────────
-
-  const runAIAnalysis = async (base64: string) => {
-    setAiLoading(true);
-    setAiError(null);
-
-    try {
-      const nutrition = await analyzeImageWithAI(base64);
-      setForm({
-        name: nutrition.description,
-        calories: String(nutrition.calories),
-        carbs: String(nutrition.carbs),
-        protein: String(nutrition.protein),
-        fat: String(nutrition.fat),
-        note: "",
-      });
-    } catch (err) {
-      console.error("AI analysis error:", err);
-      setAiError("Could not analyse image. Please fill in manually.");
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const handleRetryAI = async () => {
-    if (photoBase64) {
-      await runAIAnalysis(photoBase64);
-    }
-  };
-
-  // ── Save ────────────────────────────────────────────────────────────────────
-
-  const handleSave = () => {
-    const date = selectedDate ?? today;
-    const calories = parseInt(form.calories, 10);
-    const carbs = parseInt(form.carbs, 10);
-    const protein = parseInt(form.protein, 10);
-    const fat = parseInt(form.fat, 10);
-
-    if (!form.name.trim()) {
-      Alert.alert("Missing info", "Please enter a food name.");
-      return;
-    }
-    if (isNaN(calories)) {
-      Alert.alert("Missing info", "Please enter calories.");
-      return;
-    }
-
-    addFoodLog({
-      date,
-      url: photoUri ?? undefined,
-      description: form.name.trim(),
-      calories: isNaN(calories) ? 0 : calories,
-      carbs: isNaN(carbs) ? 0 : carbs,
-      protein: isNaN(protein) ? 0 : protein,
-      fat: isNaN(fat) ? 0 : fat,
-    });
-
-    closeAddSheet();
-    setVersion((v) => v + 1);
-  };
-
   const closeAddSheet = () => {
+    setSelectedDate(null);
     setAddFoodVisible(false);
-    setPhotoUri(null);
-    setPhotoBase64(null);
-    setAiError(null);
-    setAiLoading(false);
-    setForm(emptyForm());
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  const handleSaveNewLog = (log: FoodLog) => {
+    addFoodLog(log);
+    setVersion((v) => v + 1);
+    closeAddSheet();
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -444,329 +265,29 @@ function FoodCalendar() {
         </Pressable>
       </ScrollView>
 
-      {/* ── Add food modal ─────────────────────────────────────────────────── */}
-      <Modal
+      <AddFoodModal
         visible={addFoodVisible}
-        transparent
-        animationType="slide"
-        presentationStyle="overFullScreen"
-        onRequestClose={closeAddSheet}
-      >
-        <KeyboardAvoidingView
-          behavior="padding"
-          enabled
-          style={styles.backdrop}
-          keyboardVerticalOffset={0}
-        >
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
+        onClose={closeAddSheet}
+        onSave={handleSaveNewLog}
+        date={selectedDate}
+      />
 
-            {/* Header */}
-            <View style={styles.addFoodHeader}>
-              <Pressable style={styles.foodBtn} onPress={closeAddSheet}>
-                <Text style={styles.foodBtnText}>Cancel</Text>
-              </Pressable>
-              <Text style={styles.sheetDate}>Add Food</Text>
-              <Pressable style={styles.foodBtn} onPress={handleSave}>
-                <Text style={styles.foodBtnText}>Save</Text>
-              </Pressable>
-            </View>
-
-            {/* Form fields in a scroll view so keyboard doesn't cover them */}
-
-            <ScrollView
-              style={styles.formField}
-              // contentContainerStyle={styles.formField}
-              keyboardShouldPersistTaps="handled"
-            >
-              {/* Photo preview */}
-              {photoUri && (
-                <View
-                  style={[
-                    styles.foodIndicator,
-                    { width: 80, height: 80, marginBottom: 8 },
-                  ]}
-                >
-                  <Image
-                    source={{ uri: photoUri }}
-                    style={styles.foodImage}
-                    onError={() => setPhotoUri(null)}
-                  />
-                  <Pressable
-                    style={styles.removePhotoBtn}
-                    onPress={() => {
-                      setPhotoUri(null);
-                      setPhotoBase64(null);
-                    }}
-                  >
-                    <Ionicons name="close" size={20} color="#fff" />
-                  </Pressable>
-                </View>
-              )}
-
-              {/* Photo button */}
-              <Pressable
-                style={[
-                  styles.foodBtn,
-                  {
-                    paddingVertical: 8,
-                    paddingHorizontal: 14,
-                    alignSelf: "flex-start",
-                    marginBottom: 16,
-                  },
-                ]}
-                onPress={handleImagePick}
-              >
-                <Text style={styles.foodBtnText}>
-                  {photoUri ? "Change Photo" : "+ Add Photo"}
-                </Text>
-              </Pressable>
-
-              {/* AI status */}
-              {aiLoading && (
-                <View style={styles.aiRow}>
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.aiText}>Analysing with AI…</Text>
-                </View>
-              )}
-              {aiError && (
-                <View style={styles.aiRow}>
-                  <Text
-                    style={[
-                      styles.aiText,
-                      { color: theme.colors.error, flex: 1 },
-                    ]}
-                  >
-                    {aiError}
-                  </Text>
-                  <Pressable onPress={handleRetryAI}>
-                    <Text
-                      style={[styles.aiText, { color: theme.colors.primary }]}
-                    >
-                      Retry
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
-              {photoUri && !aiLoading && !aiError && form.name !== "" && (
-                <Text
-                  style={[
-                    styles.aiText,
-                    { color: theme.colors.primary, marginBottom: 8 },
-                  ]}
-                >
-                  ✓ AI filled in the details — review and adjust if needed.
-                </Text>
-              )}
-
-              {/* Form fields */}
-              <Text style={styles.fieldLabel}>Food name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. Grilled salmon with rice"
-                placeholderTextColor={theme.colors.muted}
-                value={form.name}
-                onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
-              />
-
-              <Text style={styles.fieldLabel}>Calories (kcal)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. 450"
-                placeholderTextColor={theme.colors.muted}
-                keyboardType="numeric"
-                value={form.calories}
-                onChangeText={(v) => setForm((f) => ({ ...f, calories: v }))}
-              />
-
-              <View style={styles.macroRow}>
-                <View style={styles.macroField}>
-                  <Text style={styles.fieldLabel}>Carbs (g)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="0"
-                    placeholderTextColor={theme.colors.muted}
-                    keyboardType="numeric"
-                    value={form.carbs}
-                    onChangeText={(v) => setForm((f) => ({ ...f, carbs: v }))}
-                  />
-                </View>
-                <View style={styles.macroField}>
-                  <Text style={styles.fieldLabel}>Protein (g)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="0"
-                    placeholderTextColor={theme.colors.muted}
-                    keyboardType="numeric"
-                    value={form.protein}
-                    onChangeText={(v) => setForm((f) => ({ ...f, protein: v }))}
-                  />
-                </View>
-                <View style={styles.macroField}>
-                  <Text style={styles.fieldLabel}>Fat (g)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="0"
-                    placeholderTextColor={theme.colors.muted}
-                    keyboardType="numeric"
-                    value={form.fat}
-                    onChangeText={(v) => setForm((f) => ({ ...f, fat: v }))}
-                  />
-                </View>
-              </View>
-
-              <Text style={styles.fieldLabel}>Note (optional)</Text>
-              <TextInput
-                style={[styles.input, { minHeight: 64 }]}
-                placeholder="Any extra notes…"
-                placeholderTextColor={theme.colors.muted}
-                multiline
-                value={form.note}
-                onChangeText={(v) => setForm((f) => ({ ...f, note: v }))}
-              />
-
-              <View style={{ height: 32 }} />
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* ── Detail modal ───────────────────────────────────────────────────── */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            {selectedDate && selectedLog && (
-              <>
-                <View style={styles.sheetHeader}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 8,
-                    }}
-                  >
-                    <View
-                      style={[
-                        styles.foodBadge,
-                        { backgroundColor: theme.colors.primary },
-                      ]}
-                    >
-                      <Text style={styles.foodBadgeText}>🍽️ FOOD</Text>
-                    </View>
-
-                    <TouchableOpacity
-                      style={styles.closeBtn}
-                      onPress={() => setModalVisible(false)}
-                    >
-                      <Ionicons name="close" size={18} color="#ffffffff" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <Text style={styles.sheetDate}>
-                    {selectedDate.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </Text>
-                  <Text style={styles.sheetSubtitle}>
-                    {selectedLog.description}
-                  </Text>
-                </View>
-
-                {selectedLog.url && (
-                  <View style={styles.sheetContent}>
-                    <Image
-                      source={{ uri: selectedLog.url }}
-                      style={styles.sheetImage}
-                    />
-                  </View>
-                )}
-
-                <View style={styles.nutritionList}>
-                  <MacroRow
-                    icon="🔥"
-                    bg="#FEF3C7"
-                    label="Calories"
-                    value={`${selectedLog.calories} kcal`}
-                  />
-                  <MacroRow
-                    icon="🥗"
-                    bg="#DBEAFE"
-                    label="Carbs"
-                    value={`${selectedLog.carbs}g`}
-                  />
-                  <MacroRow
-                    icon="🍗"
-                    bg="#DCFCE7"
-                    label="Protein"
-                    value={`${selectedLog.protein}g`}
-                  />
-                  <MacroRow
-                    icon="🫒"
-                    bg="#FCE7F3"
-                    label="Fat"
-                    value={`${selectedLog.fat}g`}
-                  />
-                </View>
-                {/* 
-                <TouchableOpacity
-                  style={[
-                    styles.closeBtn,
-                    { backgroundColor: theme.colors.primary },
-                  ]}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.closeBtnText}>Close</Text>
-                </TouchableOpacity> */}
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
+      <FoodDetailModal
+        visible={foodDetailVisible}
+        onClose={() => setFoodDetailVisible(false)}
+        selectedDate={selectedDate}
+        selectedLog={selectedLog}
+      />
     </SafeAreaView>
   );
 }
-
-// ─── Tiny helper component ────────────────────────────────────────────────────
-
-const MacroRow = ({
-  icon,
-  bg,
-  label,
-  value,
-}: {
-  icon: string;
-  bg: string;
-  label: string;
-  value: string;
-}) => (
-  <View style={styles.nutritionRow}>
-    <View style={[styles.nutritionIconWrap, { backgroundColor: bg }]}>
-      <Text style={styles.nutritionIcon}>{icon}</Text>
-    </View>
-    <View style={styles.nutritionInfo}>
-      <Text style={styles.nutritionName}>{label}</Text>
-      <Text style={styles.nutritionDetail}>{value}</Text>
-    </View>
-  </View>
-);
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.bg },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16 },
+  scrollContent: { paddingTop: 16 },
 
   topBar: {
     flexDirection: "row",
@@ -909,23 +430,8 @@ const styles = StyleSheet.create({
   nutritionName: { fontSize: 15, fontWeight: "600", color: "#111827" },
   nutritionDetail: { fontSize: 13, color: "#6B7280", marginTop: 1 },
 
-  closeBtn: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 20,
-    width: 30,
-    height: 30,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  closeBtnText: {
-    color: theme.colors.white,
-    fontSize: 16,
-    fontWeight: "600",
-    translateY: -1,
-  },
-
   foodBtn: {
-    backgroundColor: theme.colors.button,
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: theme.radius.button,

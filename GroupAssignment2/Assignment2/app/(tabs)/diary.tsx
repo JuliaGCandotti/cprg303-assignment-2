@@ -1,13 +1,37 @@
 import { theme } from "@/styles/theme";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import FoodCalendar from "@/components/foodCalendar";
 // TODO: implement Diary screen
 export default function DiaryScreen() {
   return (
-    <View style={styles.container}>
-      <FoodCalendar />
-    </View>
+    <ScrollView style={styles.container}>
+      <FoodCalendar selected={new Date()} />
+      <View style={styles.topBar}>
+        <Text style={styles.title}>My Diary </Text>
+        <Text style={styles.subtitle}>Track your meals and nutrition</Text>
+      </View>
+      <View style={styles.nutritionCard}>
+        <Text style={styles.nutritionTitle}>Today's Nutrition</Text>
+        <View style={styles.nutritionBar}>
+          <View style={[styles.nutritionFill, { width: "50%" }]} />
+        </View>
+        <Text style={styles.nutritionInfo}>Calories: 200</Text>
+      </View>
+      {/* Meal details - meal logs */}
+      <View style={styles.mealLogsContainer}>
+        <Text style={styles.title}>Today Meals</Text>
+        <View style={styles.mealCard}>
+          <Text>Breakfast: Oatmeal</Text>
+        </View>
+        <View style={styles.mealCard}>
+          <Text>Lunch: Salad</Text>
+        </View>
+        <View style={styles.mealCard}>
+          <Text>Dinner: Grilled Chicken</Text>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -15,8 +39,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.bg,
-    justifyContent: "center",
-    alignItems: "center",
+    padding: theme.spacing.card,
+  },
+  topBar: {
+    marginBottom: 8,
   },
   title: {
     fontSize: theme.fontSize.title,
@@ -32,9 +58,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.card,
     padding: 16,
-    marginTop: 24,
+    marginTop: theme.spacing.gap,
     width: "100%",
-    // maxWidth: 400,
   },
   nutritionTitle: {
     fontSize: theme.fontSize.subtitle,
@@ -43,17 +68,35 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   nutritionBar: {
-    height: 20,
+    height: 5,
     backgroundColor: theme.colors.border,
     borderRadius: 50,
     overflow: "hidden",
   },
   nutritionFill: {
     height: "100%",
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.button,
   },
   nutritionInfo: {
+    marginTop: 8,
     color: theme.colors.muted,
     fontSize: theme.fontSize.card,
+  },
+  mealLogsContainer: {
+    flexDirection: "column",
+    gap: theme.spacing.gap,
+    marginTop: theme.spacing.gap,
+  },
+  mealCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.card,
+    padding: 16,
+    width: "100%",
+  },
+  mealPhoto: {
+    width: "100%",
+    height: 200,
+    borderRadius: theme.radius.card,
+    marginBottom: theme.spacing.gap,
   },
 });

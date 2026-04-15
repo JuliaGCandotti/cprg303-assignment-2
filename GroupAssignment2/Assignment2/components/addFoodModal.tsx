@@ -11,22 +11,37 @@ import {
   View,
   StyleSheet,
   Alert,
+  Platform,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/build/Ionicons";
 import { theme } from "@/styles/theme";
 import * as ImagePicker from "expo-image-picker";
+import { analyzeImageWithAI } from "@/lib/helper";
+
+export type FoodLog = {
+  date: Date;
+  url?: string;
+  description: string;
+  calories: number;
+  carbs: number;
+  protein: number;
+  fat: number;
+  note?: string;
+};
 
 export default function AddFoodModal({
   visible,
   onClose,
   date: selectedDate,
+  onSave,
 }: {
   visible: boolean;
   onClose: () => void;
   date: Date | null;
+  onSave: (log: FoodLog) => void;
 }) {
   const [form, setForm] = React.useState({
-    name: "",
+    description: "",
     calories: "",
     carbs: "",
     protein: "",
@@ -38,24 +53,16 @@ export default function AddFoodModal({
   const [aiLoading, setAiLoading] = React.useState(false);
   const [aiError, setAiError] = React.useState<string | null>(null);
 
-  const emptyForm = {
-    name: "",
+  const initialForm = {
+    description: "",
     calories: "",
     carbs: "",
     protein: "",
     fat: "",
     note: "",
   };
-  const closeAddSheet = () => {
-    setPhotoUri(null);
-    setPhotoBase64(null);
-    setAiLoading(false);
-    setAiError(null);
-    onClose();
-    setForm(emptyForm);
-  };
-  // ── Image picker ────────────────────────────────────────────────────────────
 
+  // ── Image picker and AI analysis logic ───────────────────────────────────────────────────────
   const handleImagePick = () => {
     Alert.alert("Add Food Photo", "Choose an option", [
       { text: "Camera", onPress: () => openPicker("camera") },
@@ -121,7 +128,7 @@ export default function AddFoodModal({
     try {
       const nutrition = await analyzeImageWithAI(base64);
       setForm({
-        name: nutrition.description,
+        description: nutrition.description,
         calories: String(nutrition.calories),
         carbs: String(nutrition.carbs),
         protein: String(nutrition.protein),
@@ -143,48 +150,57 @@ export default function AddFoodModal({
   };
 
   function handleSave() {
-    // Save the food item
     const date = selectedDate || new Date();
-    const newFoodLog = {
-      date,
-      name: form.name,
+    const newFoodLog: FoodLog = {
+      ...form,
+      date: date,
+      url: photoUri || "",
+      description: form.description || "",
       calories: parseInt(form.calories) || 0,
       carbs: parseInt(form.carbs) || 0,
       protein: parseInt(form.protein) || 0,
       fat: parseInt(form.fat) || 0,
       note: form.note,
-      photoUri,
     };
-    if (!form.name.trim()) {
-      Alert.alert("Missing info", "Please enter a food name.");
+    if (!form.description.trim()) {
+      Alert.alert("Missing info", "Please enter a food description.");
       return;
     }
     if (isNaN(newFoodLog.calories) || newFoodLog.calories <= 0) {
       Alert.alert("Missing info", "Please enter calories.");
       return;
     }
+    console.log("Saving new food log:", newFoodLog);
+    onSave(newFoodLog);
+    setForm(initialForm);
+    handleClose();
+  }
+  function handleClose() {
+    setForm(initialForm);
+    setPhotoUri(null);
+    setPhotoBase64(null);
+    setAiError(null);
+    onClose(); // ← Call the onClose prop
   }
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      presentationStyle="overFullScreen"
-      onRequestClose={closeAddSheet}
+    <KeyboardAvoidingView
+      style={styles.backdrop}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <KeyboardAvoidingView
-        behavior="padding"
-        enabled
-        style={styles.backdrop}
-        keyboardVerticalOffset={0}
+      <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        presentationStyle="overFullScreen"
+        onRequestClose={onClose}
       >
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
 
           {/* Header */}
           <View style={styles.addFoodHeader}>
-            <Pressable style={styles.foodBtn} onPress={closeAddSheet}>
+            <Pressable style={styles.foodBtn} onPress={onClose}>
               <Text style={styles.foodBtnText}>Cancel</Text>
             </Pressable>
             <Text style={styles.sheetDate}>Add Food</Text>
@@ -269,7 +285,7 @@ export default function AddFoodModal({
                 </Pressable>
               </View>
             )}
-            {photoUri && !aiLoading && !aiError && form.name !== "" && (
+            {photoUri && !aiLoading && !aiError && form.description !== "" && (
               <Text
                 style={[
                   styles.aiText,
@@ -286,8 +302,8 @@ export default function AddFoodModal({
               style={styles.input}
               placeholder="e.g. Grilled salmon with rice"
               placeholderTextColor={theme.colors.muted}
-              value={form.name}
-              onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
+              value={form.description}
+              onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
             />
 
             <Text style={styles.fieldLabel}>Calories (kcal)</Text>
@@ -349,8 +365,8 @@ export default function AddFoodModal({
             <View style={{ height: 32 }} />
           </ScrollView>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -376,7 +392,7 @@ const styles = StyleSheet.create({
   },
 
   foodBtn: {
-    backgroundColor: theme.colors.button,
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: theme.radius.button,
