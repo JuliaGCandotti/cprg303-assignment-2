@@ -1,8 +1,9 @@
+import { supabase } from '@/lib/supabase'
 import { theme } from '@/styles/theme'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 
 // keep this in sync with me.tsx (or lift to a shared hook later)
 const UNREAD_NOTIFICATIONS = 8
@@ -32,6 +33,34 @@ function SettingsRow({ icon, label, badge, onPress }: RowProps) {
 export default function AccountSettingsScreen() {
   const router = useRouter()
   const [darkMode, setDarkMode] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setSigningOut(true)
+              const { error } = await supabase.auth.signOut()
+              if (error) throw error
+              router.replace('/login')
+            } catch (err) {
+              Alert.alert('Error', 'Could not sign out. Please try again.')
+            } finally {
+              setSigningOut(false)
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -86,6 +115,21 @@ export default function AccountSettingsScreen() {
         <View style={styles.section}>
           <SettingsRow icon="shield-outline" label="Main Security" />
         </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.signOutButton, pressed && styles.signOutPressed]}
+          onPress={handleSignOut}
+          disabled={signingOut}
+        >
+          {signingOut ? (
+            <ActivityIndicator color={theme.colors.primary} />
+          ) : (
+            <>
+              <Ionicons name="log-out-outline" size={20} color={theme.colors.primary} />
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </>
+          )}
+        </Pressable>
       </ScrollView>
     </View>
   )
@@ -134,4 +178,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6, marginRight: 8,
   },
   badgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 24,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.bg,
+  },
+  signOutPressed: { opacity: 0.7 },
+  signOutText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
 })
