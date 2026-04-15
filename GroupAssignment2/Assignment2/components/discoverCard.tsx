@@ -1,30 +1,38 @@
-import { theme } from '@/styles/theme'
-import { useRouter } from 'expo-router'
-import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native'
+import { theme } from "@/styles/theme";
+import { useRouter } from "expo-router";
+import {
+  Image,
+  ImageSourcePropType,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 type Props = {
-  width?: number
+  width?: number;
   program: {
-    id: string
-    title: string
-    durationMinutes: number
-    level: string
-    image: ImageSourcePropType | { uri: string }
-  }
-  variant?: 'horizontal' | 'grid'
-}
+    id: string;
+    title: string;
+    durationMinutes: number;
+    level: string;
+    image: ImageSourcePropType | { uri: string };
+  };
+  variant?: "horizontal" | "grid";
+};
 
-export default function DiscoverCard({ width = 200, program, variant = 'horizontal' }: Props) {
-  const router = useRouter()
-  const isGrid = variant === 'grid'
+export default function DiscoverCard({
+  width = 200,
+  program,
+  variant = "horizontal",
+}: Props) {
+  const router = useRouter();
+  const isGrid = variant === "grid";
 
   return (
     <Pressable
       onPress={() => router.push(`/workout/${program.id}`)}
-      style={[
-        styles.card,
-        isGrid ? styles.gridCard : { width },
-      ]}
+      style={[styles.card, isGrid ? styles.gridCard : { width }]}
     >
       <Image
         source={program.image}
@@ -43,21 +51,21 @@ export default function DiscoverCard({ width = 200, program, variant = 'horizont
         </View>
       </View>
     </Pressable>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.card,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   gridCard: {
     flex: 1,
     minWidth: 0,
   },
   image: {
-    width: '100%',
+    width: "100%",
     height: 130,
   },
   gridImage: {
@@ -70,13 +78,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.fontSize.card,
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.text,
     marginBottom: 6,
   },
   meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   badge: {
@@ -88,12 +96,12 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: theme.fontSize.badge,
     color: theme.colors.primary,
-    fontWeight: '600',
-    textTransform: 'capitalize',
+    fontWeight: "600",
+    textTransform: "capitalize",
   },
   duration: {
     fontSize: theme.fontSize.badge,
     color: theme.colors.muted,
-    fontWeight: '500',
+    fontWeight: "500",
   },
-})
+});

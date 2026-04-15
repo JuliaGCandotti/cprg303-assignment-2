@@ -7,17 +7,9 @@ import {
   View,
   Dimensions,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { theme } from "@/styles/theme";
-
-export type FoodLog = {
-  date: Date;
-  url?: string;
-  description: string;
-  calories: number;
-  carbs: number;
-  protein: number;
-  fat: number;
-};
+import { FoodLog } from "@/data/foodlogs";
 
 export interface DayCell {
   day: number | null;
@@ -29,11 +21,28 @@ export interface DayCellProps {
   cell: DayCell;
   isToday: boolean;
   onPress: () => void;
+  foodLogCount?: number;
 }
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const DAY_SIZE = Math.floor((SCREEN_WIDTH - 32 - 6 * 4) / 7);
 
-const DayCellView: React.FC<DayCellProps> = ({ cell, isToday, onPress }) => {
+const DayCellView: React.FC<DayCellProps> = ({
+  cell,
+  isToday,
+  onPress,
+  foodLogCount = 0,
+}) => {
+  const router = useRouter();
+
+  const handlePress = () => {
+    if (cell.date) {
+      const dateString = cell.date.toISOString();
+      router.push({
+        pathname: "/diary/[id]",
+        params: { id: dateString, dateString: dateString },
+      });
+    }
+  };
   if (!cell.day) {
     return <View style={[styles.dayCell, styles.emptyCell]} />;
   }
@@ -52,7 +61,7 @@ const DayCellView: React.FC<DayCellProps> = ({ cell, isToday, onPress }) => {
         styles.dayCell,
         isToday && { borderColor: todayBorderColor, borderWidth: 2 },
       ]}
-      onPress={onPress}
+      onPress={handlePress}
       activeOpacity={0.75}
     >
       {/* Show day number only if there's no log, otherwise show the food photo as
@@ -61,19 +70,20 @@ const DayCellView: React.FC<DayCellProps> = ({ cell, isToday, onPress }) => {
         <Text
           style={[
             styles.dayNumText,
-            isToday && { color: todayBorderColor, fontWeight: "700" },
+            isToday && {
+              color: todayBorderColor,
+              fontWeight: "700",
+            },
           ]}
         >
           {cell.day}
         </Text>
       )}
+
       {hasLog && cell.foodLog && (
         <View style={styles.foodIndicator}>
-          {cell.foodLog.url ? (
-            <Image
-              source={{ uri: cell.foodLog.url }}
-              style={styles.foodImage}
-            />
+          {cell.foodLog.imageUrl ? (
+            <Image source={cell.foodLog.imageUrl} style={styles.foodImage} />
           ) : (
             // Fallback when no photo was taken — show a colour swatch
             <View
@@ -83,6 +93,13 @@ const DayCellView: React.FC<DayCellProps> = ({ cell, isToday, onPress }) => {
               ]}
             />
           )}
+        </View>
+      )}
+
+      {/* Food log count badge */}
+      {foodLogCount > 0 && (
+        <View style={styles.countBadge}>
+          <Text style={styles.countBadgeText}>{foodLogCount}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -111,4 +128,20 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   foodImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  countBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: theme.colors.white,
+  },
 });

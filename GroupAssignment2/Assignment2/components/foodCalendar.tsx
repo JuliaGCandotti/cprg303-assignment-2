@@ -19,62 +19,13 @@ import Ionicons from "@expo/vector-icons/build/Ionicons";
 import DayCellView from "@/components/dayCellView";
 import { DayCell } from "@/components/dayCellView";
 import AddFoodModal from "./addFoodModal";
-import FoodDetailModal from "./foodDetailModal";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface FoodLog {
-  date: Date;
-  url?: string;
-  description: string;
-  calories: number;
-  carbs: number;
-  protein: number;
-  fat: number;
-}
+import { FoodLog, initialFoodLogs } from "@/data/foodlogs";
 
 // ─── Data layer ───────────────────────────────────────────────────────────────
 
 // In a real app this would come from a database / context / Zustand store.
 // For now we keep it as module-level state so it survives re-renders.
-let foodLogs: FoodLog[] = [
-  {
-    date: new Date(2026, 4, 2),
-    url: "https://foodish-api.com/images/burger/burger23.jpg",
-    description: "Grilled chicken with veggies",
-    calories: 450,
-    carbs: 30,
-    protein: 40,
-    fat: 15,
-  },
-  {
-    date: new Date(2026, 3, 5),
-    url: "https://foodish-api.com/images/burger/burger24.jpg",
-    description: "Cheeseburger with fries",
-    calories: 600,
-    carbs: 50,
-    protein: 30,
-    fat: 35,
-  },
-  {
-    date: new Date(2026, 4, 9),
-    url: "https://foodish-api.com/images/burger/burger25.jpg",
-    description: "Veggie burger with sweet potato fries",
-    calories: 500,
-    carbs: 45,
-    protein: 25,
-    fat: 20,
-  },
-  {
-    date: new Date(2026, 4, 10),
-    url: "https://foodish-api.com/images/burger/burger26.jpg",
-    description: "Chicken burger with avocado",
-    calories: 550,
-    carbs: 40,
-    protein: 35,
-    fat: 25,
-  },
-];
+let foodLogs: FoodLog[] = [...initialFoodLogs];
 
 function isSameDay(a: Date, b: Date): boolean {
   return (
@@ -86,6 +37,10 @@ function isSameDay(a: Date, b: Date): boolean {
 
 function getFoodLog(date: Date): FoodLog | null {
   return foodLogs.find((log) => isSameDay(log.date, date)) ?? null;
+}
+
+function countFoodLogsForDate(date: Date): number {
+  return foodLogs.filter((log) => isSameDay(log.date, date)).length;
 }
 
 function addFoodLog(log: FoodLog): void {
@@ -117,35 +72,11 @@ const MONTHS = [
 ];
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
-// ─── Form state ───────────────────────────────────────────────────────────────
-
-interface FoodForm {
-  name: string;
-  calories: string;
-  carbs: string;
-  protein: string;
-  fat: string;
-  note: string;
-}
-
-const emptyForm = (): FoodForm => ({
-  name: "",
-  calories: "",
-  carbs: "",
-  protein: "",
-  fat: "",
-  note: "",
-});
-
-// ─── Main component ───────────────────────────────────────────────────────────
-
 function FoodCalendar({ selected }: { selected?: Date }) {
   const today = new Date();
   const [current, setCurrent] = useState(today);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  // const [modalVisible, setModalVisible] = useState(false);
   const [addFoodVisible, setAddFoodVisible] = useState(false);
-  const [foodDetailVisible, setFoodDetailVisible] = useState(false);
 
   // Force re-render after saving a new log
   const [version, setVersion] = useState(0);
@@ -172,20 +103,15 @@ function FoodCalendar({ selected }: { selected?: Date }) {
   const handleDayPress = useCallback((cell: DayCell) => {
     if (!cell.date) return;
     if (!cell.foodLog) {
-      // Open "add" sheet pre-set to that date
       setSelectedDate(cell.date);
       setAddFoodVisible(true);
       return;
     }
-    setSelectedDate(cell.date);
-    setFoodDetailVisible(true);
-    // setModalVisible(true);
+    // Navigation to detail page now happens in DayCellView
   }, []);
 
   const handlePrevMonth = () => setCurrent(new Date(year, month - 1, 1));
   const handleNextMonth = () => setCurrent(new Date(year, month + 1, 1));
-
-  const selectedLog = selectedDate ? getFoodLog(selectedDate) : null;
 
   const closeAddSheet = () => {
     setSelectedDate(null);
@@ -248,6 +174,7 @@ function FoodCalendar({ selected }: { selected?: Date }) {
               cell={cell}
               isToday={cell.date?.toDateString() === today.toDateString()}
               onPress={() => handleDayPress(cell)}
+              foodLogCount={cell.date ? countFoodLogsForDate(cell.date) : 0}
             />
           ))}
         </View>
@@ -270,13 +197,6 @@ function FoodCalendar({ selected }: { selected?: Date }) {
         onClose={closeAddSheet}
         onSave={handleSaveNewLog}
         date={selectedDate}
-      />
-
-      <FoodDetailModal
-        visible={foodDetailVisible}
-        onClose={() => setFoodDetailVisible(false)}
-        selectedDate={selectedDate}
-        selectedLog={selectedLog}
       />
     </SafeAreaView>
   );
@@ -373,7 +293,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    // maxHeight: "90%",
     paddingBottom: 34,
   },
   sheetHandle: {

@@ -1,12 +1,46 @@
 import { theme } from "@/styles/theme";
-import React from "react";
+import React, { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import FoodCalendar from "@/components/foodCalendar";
+import FoodCard from "@/components/foodCard";
+import { FoodLog, initialFoodLogs } from "@/data/foodlogs";
 // TODO: implement Diary screen
 export default function DiaryScreen() {
+  const today = new Date();
+
+  // Get today's food logs
+  const todayFoodLogs = useMemo(() => {
+    return initialFoodLogs.filter((log) => {
+      const logDate = new Date(log.date);
+      return logDate.toDateString() === today.toDateString();
+    });
+  }, []);
+
+  // Calculate total nutrition for today
+  const todayNutrition = useMemo(() => {
+    return todayFoodLogs.reduce<{
+      calories: number;
+      carbs: number;
+      protein: number;
+      fat: number;
+    }>(
+      (acc, log) => ({
+        calories: acc.calories + (log.calories || 0),
+        carbs: acc.carbs + (log.carbs || 0),
+        protein: acc.protein + (log.protein || 0),
+        fat: acc.fat + (log.fat || 0),
+      }),
+      { calories: 0, carbs: 0, protein: 0, fat: 0 },
+    );
+  }, [todayFoodLogs]);
+
+  const caloriePercentage = Math.min(
+    (todayNutrition.calories / 2000) * 100,
+    100,
+  );
   return (
     <ScrollView style={styles.container}>
-      <FoodCalendar selected={new Date()} />
+      <FoodCalendar selected={today} />
       <View style={styles.topBar}>
         <Text style={styles.title}>My Diary </Text>
         <Text style={styles.subtitle}>Track your meals and nutrition</Text>
@@ -14,23 +48,43 @@ export default function DiaryScreen() {
       <View style={styles.nutritionCard}>
         <Text style={styles.nutritionTitle}>Today's Nutrition</Text>
         <View style={styles.nutritionBar}>
-          <View style={[styles.nutritionFill, { width: "50%" }]} />
+          <View
+            style={[styles.nutritionFill, { width: `${caloriePercentage}%` }]}
+          />
         </View>
-        <Text style={styles.nutritionInfo}>Calories: 200</Text>
+        <Text style={styles.nutritionInfo}>
+          Calories: {todayNutrition.calories} / 2000 kcal
+        </Text>
+        <View style={styles.macroInfo}>
+          <Text style={styles.macroText}>Carbs: {todayNutrition.carbs}g</Text>
+          <Text style={styles.macroText}>
+            Protein: {todayNutrition.protein}g
+          </Text>
+          <Text style={styles.macroText}>Fat: {todayNutrition.fat}g</Text>
+        </View>
       </View>
+
       {/* Meal details - meal logs */}
-      <View style={styles.mealLogsContainer}>
-        <Text style={styles.title}>Today Meals</Text>
-        <View style={styles.mealCard}>
-          <Text>Breakfast: Oatmeal</Text>
+      {todayFoodLogs.length > 0 ? (
+        <View style={styles.mealLogsContainer}>
+          <Text style={styles.mealLogsTitle}>Today's Meals</Text>
+          {todayFoodLogs.map((log) => (
+            <FoodCard
+              key={log.id}
+              title={log.title}
+              image_url={log.imageUrl}
+              calories={log.calories}
+            />
+          ))}
         </View>
-        <View style={styles.mealCard}>
-          <Text>Lunch: Salad</Text>
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>No meals logged yet</Text>
+          <Text style={styles.emptySubtext}>
+            Add your first meal to get started!
+          </Text>
         </View>
-        <View style={styles.mealCard}>
-          <Text>Dinner: Grilled Chicken</Text>
-        </View>
-      </View>
+      )}
     </ScrollView>
   );
 }
@@ -39,7 +93,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.bg,
-    padding: theme.spacing.card,
+    paddingHorizontal: theme.spacing.card,
+    paddingVertical: 2,
   },
   topBar: {
     marginBottom: 8,
@@ -87,16 +142,34 @@ const styles = StyleSheet.create({
     gap: theme.spacing.gap,
     marginTop: theme.spacing.gap,
   },
-  mealCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.card,
-    padding: 16,
-    width: "100%",
+  mealLogsTitle: {
+    fontSize: theme.fontSize.subtitle,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: 8,
   },
-  mealPhoto: {
-    width: "100%",
-    height: 200,
-    borderRadius: theme.radius.card,
-    marginBottom: theme.spacing.gap,
+  macroInfo: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 12,
+  },
+  macroText: {
+    fontSize: theme.fontSize.card,
+    color: theme.colors.muted,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
+    marginTop: theme.spacing.gap,
+  },
+  emptyText: {
+    fontSize: theme.fontSize.subtitle,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
+  emptySubtext: {
+    fontSize: theme.fontSize.card,
+    color: theme.colors.muted,
+    marginTop: 8,
   },
 });

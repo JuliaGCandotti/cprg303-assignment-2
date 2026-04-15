@@ -61,7 +61,9 @@ export default function ProgressScreen() {
 
   const loadCompleted = useCallback(async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       setEntries([]);
       setLoading(false);
@@ -72,7 +74,7 @@ export default function ProgressScreen() {
       .from("workout_logs")
       .select(
         `id, workout_id, completed_at, exercises_done, total_seconds, exercise_log,
-         workouts ( id, title, level, duration_minutes, kcal, image_url )`
+         workouts ( id, title, level, duration_minutes, kcal, image_url )`,
       )
       .eq("user_id", user.id)
       .order("completed_at", { ascending: false })
@@ -86,7 +88,10 @@ export default function ProgressScreen() {
 
     setEntries(
       data
-        .filter((row): row is WorkoutLogRow & { workouts: Workout } => row.workouts !== null)
+        .filter(
+          (row): row is WorkoutLogRow & { workouts: Workout } =>
+            row.workouts !== null,
+        )
         .map((row) => {
           const total = row.exercise_log?.length ?? 0;
           const done = row.exercises_done ?? 0;
@@ -99,12 +104,16 @@ export default function ProgressScreen() {
             totalSeconds: row.total_seconds ?? 0,
             isFullyComplete: total > 0 && done >= total,
           };
-        })
+        }),
     );
     setLoading(false);
   }, []);
 
-  useFocusEffect(useCallback(() => { loadCompleted(); }, [loadCompleted]));
+  useFocusEffect(
+    useCallback(() => {
+      loadCompleted();
+    }, [loadCompleted]),
+  );
 
   const now = useMemo(() => new Date(), []);
   const monthName = now.toLocaleString("en-US", { month: "long" });
@@ -136,14 +145,19 @@ export default function ProgressScreen() {
       filtered.reduce((sum, e) => {
         if (e.isFullyComplete) return sum + (e.workout.kcal ?? 0);
         if (e.exercisesTotal === 0) return sum;
-        return sum + Math.round((e.workout.kcal ?? 0) * (e.exercisesDone / e.exercisesTotal));
+        return (
+          sum +
+          Math.round(
+            (e.workout.kcal ?? 0) * (e.exercisesDone / e.exercisesTotal),
+          )
+        );
       }, 0),
-    [filtered]
+    [filtered],
   );
 
   const completedCount = useMemo(
     () => filtered.filter((e) => e.isFullyComplete).length,
-    [filtered]
+    [filtered],
   );
 
   const formatDate = (iso: string) =>
@@ -167,24 +181,35 @@ export default function ProgressScreen() {
       <Text style={styles.header}>Progress</Text>
 
       <View style={styles.topRow}>
-        <Text style={styles.monthTitle}>{monthName} {year}</Text>
+        <Text style={styles.monthTitle}>
+          {monthName} {year}
+        </Text>
         <View style={styles.periodRow}>
-          {PERIODS.map(p => {
+          {PERIODS.map((p) => {
             const active = activePeriod === p;
             return (
               <Pressable
                 key={p}
-                style={[styles.periodButton, active && styles.periodButtonActive]}
+                style={[
+                  styles.periodButton,
+                  active && styles.periodButtonActive,
+                ]}
                 onPress={() => setActivePeriod(p)}
               >
-                <Text style={[styles.periodText, active && styles.periodTextActive]}>
+                <Text
+                  style={[styles.periodText, active && styles.periodTextActive]}
+                >
                   {p}
                 </Text>
               </Pressable>
             );
           })}
           <Pressable style={styles.calendarIcon}>
-            <Ionicons name="calendar-outline" size={20} color={theme.colors.muted} />
+            <Ionicons
+              name="calendar-outline"
+              size={20}
+              color={theme.colors.muted}
+            />
           </Pressable>
         </View>
       </View>
@@ -214,7 +239,11 @@ export default function ProgressScreen() {
 
       {filtered.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="barbell-outline" size={48} color={theme.colors.border} />
+          <Ionicons
+            name="barbell-outline"
+            size={48}
+            color={theme.colors.border}
+          />
           <Text style={styles.emptyText}>No workouts recorded yet.</Text>
           <Text style={styles.emptySubtext}>
             Complete a workout and it'll show up here!
@@ -228,12 +257,22 @@ export default function ProgressScreen() {
         </View>
       ) : (
         filtered.map((entry) => {
-          const { logId, workout, completedAt, exercisesDone, exercisesTotal, isFullyComplete } = entry;
+          const {
+            logId,
+            workout,
+            completedAt,
+            exercisesDone,
+            exercisesTotal,
+            isFullyComplete,
+          } = entry;
           return (
             <Pressable
               key={logId}
               onPress={() => router.push(`/workout/${workout.id}`)}
-              style={[styles.progressCard, !isFullyComplete && styles.progressCardPartial]}
+              style={[
+                styles.progressCard,
+                !isFullyComplete && styles.progressCardPartial,
+              ]}
             >
               <Image
                 source={{ uri: workout.image_url }}
@@ -244,7 +283,9 @@ export default function ProgressScreen() {
                 <Text style={styles.progressTitle}>{workout.title}</Text>
                 <View style={styles.progressTags}>
                   <View style={styles.tag}>
-                    <Text style={styles.tagText}>{workout.duration_minutes} min</Text>
+                    <Text style={styles.tagText}>
+                      {workout.duration_minutes} min
+                    </Text>
                   </View>
                   <View style={styles.tag}>
                     <Text style={styles.tagText}>{workout.level}</Text>
@@ -257,7 +298,9 @@ export default function ProgressScreen() {
                     </View>
                   )}
                 </View>
-                <Text style={styles.progressDate}>{formatDate(completedAt)}</Text>
+                <Text style={styles.progressDate}>
+                  {formatDate(completedAt)}
+                </Text>
               </View>
               {isFullyComplete ? (
                 <View style={styles.completedBadge}>
@@ -279,57 +322,156 @@ export default function ProgressScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.bg, padding: theme.spacing.screen, paddingTop: 52 },
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.bg,
+    padding: theme.spacing.screen,
+    paddingTop: 52,
+  },
   center: { justifyContent: "center", alignItems: "center" },
-  header: { fontSize: theme.fontSize.title, fontWeight: "800", color: theme.colors.text, marginBottom: 16 },
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  monthTitle: { fontSize: theme.fontSize.section, fontWeight: "800", color: theme.colors.text },
+  header: {
+    fontSize: theme.fontSize.title,
+    fontWeight: "800",
+    color: theme.colors.text,
+    marginBottom: 16,
+  },
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  monthTitle: {
+    fontSize: theme.fontSize.section,
+    fontWeight: "800",
+    color: theme.colors.text,
+  },
   periodRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   periodButton: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  periodButtonActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  periodButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
   periodText: { fontSize: 13, fontWeight: "600", color: theme.colors.muted },
   periodTextActive: { color: theme.colors.white },
   calendarIcon: { marginLeft: 4 },
   statsRow: { flexDirection: "row", gap: 12, marginBottom: 20 },
   statCard: {
-    flex: 1, backgroundColor: theme.colors.white, borderRadius: theme.radius.card,
-    padding: 16, borderWidth: 1, borderColor: theme.colors.border,
+    flex: 1,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.radius.card,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  statLabel: { fontSize: theme.fontSize.subtitle, color: theme.colors.muted, marginBottom: 6 },
-  statValue: { fontSize: theme.fontSize.section, fontWeight: "800", color: theme.colors.text },
-  statSub: { fontSize: theme.fontSize.subtitle, fontWeight: "600", color: theme.colors.muted },
+  statLabel: {
+    fontSize: theme.fontSize.subtitle,
+    color: theme.colors.muted,
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: theme.fontSize.section,
+    fontWeight: "800",
+    color: theme.colors.text,
+  },
+  statSub: {
+    fontSize: theme.fontSize.subtitle,
+    fontWeight: "600",
+    color: theme.colors.muted,
+  },
   plannerRow: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    backgroundColor: theme.colors.white, borderRadius: theme.radius.card,
-    padding: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.radius.card,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: 12,
   },
-  plannerTitle: { fontSize: theme.fontSize.card, fontWeight: "700", color: theme.colors.text },
-  sectionTitle: { fontSize: theme.fontSize.section, fontWeight: "800", color: theme.colors.text, marginBottom: 14, marginTop: 12 },
+  plannerTitle: {
+    fontSize: theme.fontSize.card,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+  sectionTitle: {
+    fontSize: theme.fontSize.section,
+    fontWeight: "800",
+    color: theme.colors.text,
+    marginBottom: 14,
+    marginTop: 12,
+  },
   emptyState: { alignItems: "center", paddingVertical: 40, gap: 8 },
-  emptyText: { fontSize: theme.fontSize.card, fontWeight: "700", color: theme.colors.text, marginTop: 8 },
-  emptySubtext: { fontSize: theme.fontSize.subtitle, color: theme.colors.muted, textAlign: "center" },
-  startButton: {
-    backgroundColor: theme.colors.button, borderRadius: theme.radius.button,
-    paddingHorizontal: 24, paddingVertical: 14, marginTop: 12,
+  emptyText: {
+    fontSize: theme.fontSize.card,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginTop: 8,
   },
-  startButtonText: { color: theme.colors.white, fontWeight: "700", fontSize: theme.fontSize.card },
+  emptySubtext: {
+    fontSize: theme.fontSize.subtitle,
+    color: theme.colors.muted,
+    textAlign: "center",
+  },
+  startButton: {
+    backgroundColor: theme.colors.button,
+    borderRadius: theme.radius.button,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    marginTop: 12,
+  },
+  startButtonText: {
+    color: theme.colors.white,
+    fontWeight: "700",
+    fontSize: theme.fontSize.card,
+  },
   progressCard: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: theme.colors.white, borderRadius: theme.radius.card,
-    padding: 12, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.radius.card,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   progressCardPartial: {
     backgroundColor: "#fffbeb",
     borderColor: "#fde68a",
   },
-  progressImage: { width: 60, height: 60, borderRadius: 10, backgroundColor: theme.colors.border },
+  progressImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    backgroundColor: theme.colors.border,
+  },
   progressInfo: { flex: 1, marginLeft: 12 },
-  progressTitle: { fontSize: theme.fontSize.card, fontWeight: "700", color: theme.colors.text, marginBottom: 4 },
-  progressTags: { flexDirection: "row", gap: 6, marginBottom: 4, flexWrap: "wrap" },
-  tag: { backgroundColor: theme.colors.primaryLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
+  progressTitle: {
+    fontSize: theme.fontSize.card,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  progressTags: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 4,
+    flexWrap: "wrap",
+  },
+  tag: {
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
   tagText: { fontSize: 11, color: theme.colors.primary, fontWeight: "600" },
   progressDate: { fontSize: 11, color: theme.colors.muted },
   completedBadge: { flexDirection: "row", alignItems: "center", gap: 4 },

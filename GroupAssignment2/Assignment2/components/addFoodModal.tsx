@@ -17,17 +17,7 @@ import Ionicons from "@expo/vector-icons/build/Ionicons";
 import { theme } from "@/styles/theme";
 import * as ImagePicker from "expo-image-picker";
 import { analyzeImageWithAI } from "@/lib/helper";
-
-export type FoodLog = {
-  date: Date;
-  url?: string;
-  description: string;
-  calories: number;
-  carbs: number;
-  protein: number;
-  fat: number;
-  note?: string;
-};
+import { FoodLog } from "@/data/foodlogs";
 
 export default function AddFoodModal({
   visible,
@@ -41,12 +31,13 @@ export default function AddFoodModal({
   onSave: (log: FoodLog) => void;
 }) {
   const [form, setForm] = React.useState({
-    description: "",
+    title: "",
     calories: "",
     carbs: "",
     protein: "",
     fat: "",
     note: "",
+    imgUrl: "",
   });
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = React.useState<string | null>(null);
@@ -54,12 +45,13 @@ export default function AddFoodModal({
   const [aiError, setAiError] = React.useState<string | null>(null);
 
   const initialForm = {
-    description: "",
+    title: "",
     calories: "",
     carbs: "",
     protein: "",
     fat: "",
     note: "",
+    imgUrl: "",
   };
 
   // ── Image picker and AI analysis logic ───────────────────────────────────────────────────────
@@ -128,12 +120,13 @@ export default function AddFoodModal({
     try {
       const nutrition = await analyzeImageWithAI(base64);
       setForm({
-        description: nutrition.description,
+        title: nutrition.title,
         calories: String(nutrition.calories),
         carbs: String(nutrition.carbs),
         protein: String(nutrition.protein),
         fat: String(nutrition.fat),
         note: "",
+        imgUrl: nutrition.imgUrl,
       });
     } catch (err) {
       console.error("AI analysis error:", err);
@@ -152,18 +145,18 @@ export default function AddFoodModal({
   function handleSave() {
     const date = selectedDate || new Date();
     const newFoodLog: FoodLog = {
-      ...form,
-      date: date,
-      url: photoUri || "",
-      description: form.description || "",
+      id: Math.random().toString(36).substr(2, 9), // simple random ID generator
+      title: form.title || "Untitled Food",
       calories: parseInt(form.calories) || 0,
       carbs: parseInt(form.carbs) || 0,
       protein: parseInt(form.protein) || 0,
       fat: parseInt(form.fat) || 0,
+      imageUrl: { uri: photoUri || "" },
+      date: date,
       note: form.note,
     };
-    if (!form.description.trim()) {
-      Alert.alert("Missing info", "Please enter a food description.");
+    if (!form.title.trim()) {
+      Alert.alert("Missing info", "Please enter a food title.");
       return;
     }
     if (isNaN(newFoodLog.calories) || newFoodLog.calories <= 0) {
@@ -180,20 +173,21 @@ export default function AddFoodModal({
     setPhotoUri(null);
     setPhotoBase64(null);
     setAiError(null);
-    onClose(); // ← Call the onClose prop
+    onClose();
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.backdrop}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      presentationStyle="overFullScreen"
+      onRequestClose={onClose}
     >
-      <Modal
-        visible={visible}
-        transparent
-        animationType="slide"
-        presentationStyle="overFullScreen"
-        onRequestClose={onClose}
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
@@ -285,7 +279,7 @@ export default function AddFoodModal({
                 </Pressable>
               </View>
             )}
-            {photoUri && !aiLoading && !aiError && form.description !== "" && (
+            {photoUri && !aiLoading && !aiError && form.title !== "" && (
               <Text
                 style={[
                   styles.aiText,
@@ -302,8 +296,8 @@ export default function AddFoodModal({
               style={styles.input}
               placeholder="e.g. Grilled salmon with rice"
               placeholderTextColor={theme.colors.muted}
-              value={form.description}
-              onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
+              value={form.title}
+              onChangeText={(v) => setForm((f) => ({ ...f, title: v }))}
             />
 
             <Text style={styles.fieldLabel}>Calories (kcal)</Text>
@@ -365,8 +359,8 @@ export default function AddFoodModal({
             <View style={{ height: 32 }} />
           </ScrollView>
         </View>
-      </Modal>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 

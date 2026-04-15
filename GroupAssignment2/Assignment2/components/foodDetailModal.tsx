@@ -3,8 +3,8 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { theme } from "@/styles/theme";
 import Ionicons from "@expo/vector-icons/build/Ionicons";
-import { FoodLog } from "@/components/addFoodModal";
 import { StyleSheet, Dimensions } from "react-native";
+import { FoodLog } from "@/data/foodlogs";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const DAY_SIZE = Math.floor((SCREEN_WIDTH - 32 - 6 * 4) / 7);
@@ -82,15 +82,13 @@ export default function FoodDetailModal({
                     day: "numeric",
                   })}
                 </Text>
-                <Text style={styles.sheetSubtitle}>
-                  {selectedLog.description}
-                </Text>
+                <Text style={styles.sheetSubtitle}>{selectedLog.title}</Text>
               </View>
 
-              {selectedLog.url && (
+              {selectedLog.imageUrl && (
                 <View style={styles.sheetContent}>
                   <Image
-                    source={{ uri: selectedLog.url }}
+                    source={selectedLog.imageUrl}
                     style={styles.sheetImage}
                   />
                 </View>

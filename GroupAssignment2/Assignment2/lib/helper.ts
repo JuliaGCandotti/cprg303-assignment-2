@@ -5,11 +5,12 @@
  */
  
 interface AINutrition {
-  description: string;
+  title: string;
   calories: number;
   carbs: number;
   protein: number;
   fat: number;
+  imgUrl: string;
 }
 const geminiApiKey = process.env.GEMINI_API_KEY!;
 const api_url = process.env.API_URL!;
