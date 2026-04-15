@@ -10,6 +10,7 @@ export default function TabLayout() {
         tabBarStyle: { height: 60, paddingBottom: 8 },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.muted,
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tabs.Screen

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { View, Text, Dimensions, Image } from "react-native";
 import { StyleSheet } from "react-native";
 import { theme } from "@/styles/theme";
@@ -13,9 +13,14 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/build/Ionicons";
+import DayCellView from "@/components/dayCellView";
+import { DayCell } from "@/components/dayCellView";
 
+const GEMINI_API_KEY = "AIzaSyAwefNVDwpKWIT8TV8HA4TrP4SxPTV8nKo"; // Replace with your key
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FoodLog {
@@ -108,42 +113,27 @@ interface AINutrition {
  * the nutritional content. Returns parsed macros or throws on failure.
  */
 async function analyzeImageWithAI(base64: string): Promise<AINutrition> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const payload = {
+    contents: [
+      {
+        parts: [
+          {
+            text: 'Analyze this food image. Provide a rough estimate of calories, protein, carbs, and fat. Return ONLY a JSON object: {"item": "name", "calories": 0, "protein": "0g", "carbs": "0g", "fat": "0g"}',
+          },
+          {
+            inline_data: {
+              mime_type: "image/jpeg",
+              data: base64,
+            },
+          },
+        ],
+      },
+    ],
+  };
+  const response = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 512,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: "image/jpeg",
-                data: base64,
-              },
-            },
-            {
-              type: "text",
-              text: `You are a nutrition expert. Look at this food image and estimate the nutritional content.
-Respond ONLY with a JSON object — no markdown fences, no extra text.
-Format:
-{
-  "description": "<short meal name>",
-  "calories": <number>,
-  "carbs": <number in grams>,
-  "protein": <number in grams>,
-  "fat": <number in grams>
-}
-Be reasonable. If you cannot see food clearly, make a best guess based on what is visible.`,
-            },
-          ],
-        },
-      ],
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -151,11 +141,10 @@ Be reasonable. If you cannot see food clearly, make a best guess based on what i
   }
 
   const data = await response.json();
-  const text: string =
-    data?.content?.find((b: { type: string }) => b.type === "text")?.text ?? "";
+  const textResponse = data.candidates[0].content.parts[0].text;
 
   // Strip any accidental markdown fences
-  const clean = text.replace(/```json|```/g, "").trim();
+  const clean = textResponse.replace(/```json|```/g, "").trim();
   const parsed: AINutrition = JSON.parse(clean);
   return parsed;
 }
@@ -180,102 +169,6 @@ const MONTHS = [
   "December",
 ];
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-interface DayCell {
-  day: number | null;
-  date: Date | null;
-  foodLog: FoodLog | null;
-}
-
-interface DayCellProps {
-  cell: DayCell;
-  isToday: boolean;
-  onPress: () => void;
-}
-
-const DayCellView: React.FC<DayCellProps> = ({ cell, isToday, onPress }) => {
-  if (!cell.day) {
-    return <View style={[styles.dayCell, styles.emptyCell]} />;
-  }
-
-  const hasLog = cell.foodLog !== null;
-  const logCalories = cell.foodLog?.calories ?? 0;
-  const accentColor =
-    logCalories > 500 ? theme.colors.error : theme.colors.primary;
-
-  // Show today ring even without a log so the user always knows where "today" is
-  const todayBorderColor = hasLog ? accentColor : theme.colors.primary;
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.dayCell,
-        isToday && { borderColor: todayBorderColor, borderWidth: 2 },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.75}
-    >
-      {/* Show day number only if there's no log, otherwise show the food photo as
-      the main visual */}
-      {!hasLog && (
-        <Text
-          style={[
-            styles.dayNumText,
-            isToday && { color: todayBorderColor, fontWeight: "700" },
-          ]}
-        >
-          {cell.day}
-        </Text>
-      )}
-      {hasLog && cell.foodLog && (
-        <View style={styles.foodIndicator}>
-          {cell.foodLog.url ? (
-            <Image
-              source={{ uri: cell.foodLog.url }}
-              style={styles.foodImage}
-            />
-          ) : (
-            // Fallback when no photo was taken — show a colour swatch
-            <View
-              style={[
-                styles.foodImage,
-                { backgroundColor: theme.colors.primary, opacity: 0.3 },
-              ]}
-            />
-          )}
-        </View>
-      )}
-
-      {/* <Text
-        style={[
-          styles.dayNumText,
-          isToday && { color: todayBorderColor, fontWeight: "700" },
-        ]}
-      >
-        {cell.day}
-      </Text>
-      {hasLog && cell.foodLog && (
-        <View style={styles.foodIndicator}>
-          {cell.foodLog.url ? (
-            <Image
-              source={{ uri: cell.foodLog.url }}
-              style={styles.foodImage}
-            />
-          ) : (
-            // Fallback when no photo was taken — show a colour swatch
-            <View
-              style={[
-                styles.foodImage,
-                { backgroundColor: theme.colors.primary, opacity: 0.3 },
-              ]}
-            />
-          )}
-        </View> */}
-    </TouchableOpacity>
-  );
-};
 
 // ─── Form state ───────────────────────────────────────────────────────────────
 
@@ -416,6 +309,7 @@ function FoodCalendar() {
   const runAIAnalysis = async (base64: string) => {
     setAiLoading(true);
     setAiError(null);
+
     try {
       const nutrition = await analyzeImageWithAI(base64);
       setForm({
@@ -469,7 +363,7 @@ function FoodCalendar() {
     });
 
     closeAddSheet();
-    setVersion((v) => v + 1); // trigger re-render
+    setVersion((v) => v + 1);
   };
 
   const closeAddSheet = () => {
@@ -558,7 +452,12 @@ function FoodCalendar() {
         presentationStyle="overFullScreen"
         onRequestClose={closeAddSheet}
       >
-        <View style={styles.backdrop}>
+        <KeyboardAvoidingView
+          behavior="padding"
+          enabled
+          style={styles.backdrop}
+          keyboardVerticalOffset={0}
+        >
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
 
@@ -573,9 +472,11 @@ function FoodCalendar() {
               </Pressable>
             </View>
 
+            {/* Form fields in a scroll view so keyboard doesn't cover them */}
+
             <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={styles.formField}
+              style={styles.formField}
+              // contentContainerStyle={styles.formField}
               keyboardShouldPersistTaps="handled"
             >
               {/* Photo preview */}
@@ -730,7 +631,7 @@ function FoodCalendar() {
               <View style={{ height: 32 }} />
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Detail modal ───────────────────────────────────────────────────── */}
@@ -747,13 +648,30 @@ function FoodCalendar() {
               <>
                 <View style={styles.sheetHeader}>
                   <View
-                    style={[
-                      styles.workoutBadge,
-                      { backgroundColor: theme.colors.primary },
-                    ]}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                    }}
                   >
-                    <Text style={styles.workoutBadgeText}>🍽️ FOOD</Text>
+                    <View
+                      style={[
+                        styles.foodBadge,
+                        { backgroundColor: theme.colors.primary },
+                      ]}
+                    >
+                      <Text style={styles.foodBadgeText}>🍽️ FOOD</Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.closeBtn}
+                      onPress={() => setModalVisible(false)}
+                    >
+                      <Ionicons name="close" size={18} color="#ffffffff" />
+                    </TouchableOpacity>
                   </View>
+
                   <Text style={styles.sheetDate}>
                     {selectedDate.toLocaleDateString("en-US", {
                       month: "short",
@@ -774,7 +692,7 @@ function FoodCalendar() {
                   </View>
                 )}
 
-                <View style={styles.exerciseList}>
+                <View style={styles.nutritionList}>
                   <MacroRow
                     icon="🔥"
                     bg="#FEF3C7"
@@ -800,7 +718,7 @@ function FoodCalendar() {
                     value={`${selectedLog.fat}g`}
                   />
                 </View>
-
+                {/* 
                 <TouchableOpacity
                   style={[
                     styles.closeBtn,
@@ -809,7 +727,7 @@ function FoodCalendar() {
                   onPress={() => setModalVisible(false)}
                 >
                   <Text style={styles.closeBtnText}>Close</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </>
             )}
           </View>
@@ -832,13 +750,13 @@ const MacroRow = ({
   label: string;
   value: string;
 }) => (
-  <View style={styles.exerciseRow}>
-    <View style={[styles.exerciseIconWrap, { backgroundColor: bg }]}>
-      <Text style={styles.exerciseIcon}>{icon}</Text>
+  <View style={styles.nutritionRow}>
+    <View style={[styles.nutritionIconWrap, { backgroundColor: bg }]}>
+      <Text style={styles.nutritionIcon}>{icon}</Text>
     </View>
-    <View style={styles.exerciseInfo}>
-      <Text style={styles.exerciseName}>{label}</Text>
-      <Text style={styles.exerciseDetail}>{value}</Text>
+    <View style={styles.nutritionInfo}>
+      <Text style={styles.nutritionName}>{label}</Text>
+      <Text style={styles.nutritionDetail}>{value}</Text>
     </View>
   </View>
 );
@@ -846,7 +764,7 @@ const MacroRow = ({
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#FAFAFA" },
+  safe: { flex: 1, backgroundColor: theme.colors.bg },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16 },
 
@@ -908,10 +826,10 @@ const styles = StyleSheet.create({
   dayCell: {
     width: DAY_SIZE,
     height: DAY_SIZE,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.card,
     borderRadius: 10,
     borderWidth: 0.5,
-    borderColor: "#E5E7EB",
+    borderColor: theme.colors.border,
     padding: 8,
     justifyContent: "space-between",
   },
@@ -934,7 +852,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "90%",
+    // maxHeight: "90%",
     paddingBottom: 34,
   },
   sheetHandle: {
@@ -946,16 +864,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 4,
   },
-  sheetHeader: { padding: 20, paddingTop: 16 },
-  workoutBadge: {
+  sheetHeader: {
+    padding: 20,
+    paddingTop: 16,
+  },
+  foodBadge: {
     alignSelf: "flex-start",
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 8,
     borderRadius: 20,
-    marginBottom: 8,
   },
-  workoutBadgeText: {
-    color: "#FFFFFF",
+  foodBadgeText: {
+    color: theme.colors.white,
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.8,
@@ -968,8 +888,8 @@ const styles = StyleSheet.create({
   },
   sheetSubtitle: { fontSize: 13, color: "#6B7280", marginTop: 2 },
 
-  exerciseList: { paddingHorizontal: 20, marginTop: 4 },
-  exerciseRow: {
+  nutritionList: { paddingHorizontal: 20, marginTop: 4 },
+  nutritionRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
@@ -977,26 +897,32 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F3F4F6",
     gap: 12,
   },
-  exerciseIconWrap: {
+  nutritionIconWrap: {
     width: 44,
     height: 44,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
-  exerciseIcon: { fontSize: 20 },
-  exerciseInfo: { flex: 1 },
-  exerciseName: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  exerciseDetail: { fontSize: 13, color: "#6B7280", marginTop: 1 },
+  nutritionIcon: { fontSize: 20 },
+  nutritionInfo: { flex: 1 },
+  nutritionName: { fontSize: 15, fontWeight: "600", color: "#111827" },
+  nutritionDetail: { fontSize: 13, color: "#6B7280", marginTop: 1 },
 
   closeBtn: {
-    marginHorizontal: 20,
-    marginTop: 16,
-    paddingVertical: 15,
-    borderRadius: 14,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 20,
+    width: 30,
+    height: 30,
     alignItems: "center",
+    justifyContent: "center",
   },
-  closeBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  closeBtnText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+    translateY: -1,
+  },
 
   foodBtn: {
     backgroundColor: theme.colors.button,
@@ -1018,14 +944,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 20,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: theme.colors.border,
   },
 
   formField: { paddingHorizontal: 20, paddingTop: 16 },
   fieldLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#374151",
+    color: theme.colors.text,
     marginBottom: 4,
     marginTop: 12,
   },
@@ -1066,10 +992,10 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.card,
     borderWidth: 1,
     marginHorizontal: 20,
-    width: DAY_SIZE * 1.5,
-    height: DAY_SIZE * 1.5,
+    width: DAY_SIZE * 3.0,
+    height: DAY_SIZE * 3.0,
     alignSelf: "center",
-    borderColor: "#E5E7EB",
+    borderColor: theme.colors.border,
     overflow: "hidden",
   },
   sheetImage: {

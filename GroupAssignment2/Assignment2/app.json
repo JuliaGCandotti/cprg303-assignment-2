@@ -28,7 +28,8 @@
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.Assignment2"
+      "package": "com.anonymous.Assignment2",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "output": "static",
