@@ -109,6 +109,8 @@ export default function WorkoutScreen() {
         states[e.local_id] = e.completed ? "done" : "idle";
         spent[e.local_id] = e.time_spent_seconds ?? 0;
       });
+      timerStatesRef.current = states;
+      timeSpentRef.current = spent;
       setTimerStates(states);
       setTimeSpent(spent);
     };
@@ -215,21 +217,24 @@ export default function WorkoutScreen() {
       setTimeLeft((prev) => {
         const current = prev[exerciseId] ?? 0;
 
-        setTimeSpent((s) => ({
-          ...s,
-          [exerciseId]: (s[exerciseId] ?? 0) + 1,
-        }));
+        // mutate refs synchronously so flushSync sees fresh data
+        timeSpentRef.current = {
+          ...timeSpentRef.current,
+          [exerciseId]: (timeSpentRef.current[exerciseId] ?? 0) + 1,
+        };
+        setTimeSpent(timeSpentRef.current);
 
         if (current <= 1) {
           // exercise just completed naturally — save immediately
           clearInterval(intervals.current[exerciseId]);
           delete intervals.current[exerciseId];
-          setTimerStates((st) => ({ ...st, [exerciseId]: "done" }));
-          setTimeout(() => flushSync(), 0);
+          timerStatesRef.current = { ...timerStatesRef.current, [exerciseId]: "done" };
+          setTimerStates(timerStatesRef.current);
+          flushSync();
           return { ...prev, [exerciseId]: 0 };
         }
 
-        scheduleSync(); // background save while running
+        scheduleSync();
         return { ...prev, [exerciseId]: current - 1 };
       });
     }, 1000);
@@ -242,14 +247,16 @@ export default function WorkoutScreen() {
       // pause — keep remaining
       clearInterval(intervals.current[exerciseId]);
       delete intervals.current[exerciseId];
-      setTimerStates((p) => ({ ...p, [exerciseId]: "paused" }));
-      setTimeout(() => flushSync(), 0);
+      timerStatesRef.current = { ...timerStatesRef.current, [exerciseId]: "paused" };
+      setTimerStates(timerStatesRef.current);
+      flushSync();
       return;
     }
 
     if (state === "paused") {
       // resume from current remaining
-      setTimerStates((p) => ({ ...p, [exerciseId]: "running" }));
+      timerStatesRef.current = { ...timerStatesRef.current, [exerciseId]: "running" };
+      setTimerStates(timerStatesRef.current);
       startTicking(exerciseId);
       ensureSession();
       return;
@@ -257,7 +264,8 @@ export default function WorkoutScreen() {
 
     // idle or done -> fresh start
     setTimeLeft((p) => ({ ...p, [exerciseId]: durationSeconds }));
-    setTimerStates((p) => ({ ...p, [exerciseId]: "running" }));
+    timerStatesRef.current = { ...timerStatesRef.current, [exerciseId]: "running" };
+    setTimerStates(timerStatesRef.current);
     startTicking(exerciseId);
     ensureSession();
   };
@@ -266,9 +274,10 @@ export default function WorkoutScreen() {
     const state = timerStates[exerciseId] ?? "idle";
 
     if (state === "done") {
-      setTimerStates((p) => ({ ...p, [exerciseId]: "idle" }));
+      timerStatesRef.current = { ...timerStatesRef.current, [exerciseId]: "idle" };
+      setTimerStates(timerStatesRef.current);
       setTimeLeft((p) => ({ ...p, [exerciseId]: durationSeconds }));
-      setTimeout(() => flushSync(), 0);
+      flushSync();
       return;
     }
 
@@ -276,10 +285,10 @@ export default function WorkoutScreen() {
       clearInterval(intervals.current[exerciseId]);
       delete intervals.current[exerciseId];
     }
-    setTimerStates((p) => ({ ...p, [exerciseId]: "done" }));
+    timerStatesRef.current = { ...timerStatesRef.current, [exerciseId]: "done" };
+    setTimerStates(timerStatesRef.current);
     setTimeLeft((p) => ({ ...p, [exerciseId]: 0 }));
-    ensureSession();
-    setTimeout(() => flushSync(), 0);
+    ensureSession().then(() => flushSync());
   };
 
   const formatTime = (seconds: number) => {
@@ -330,6 +339,7 @@ export default function WorkoutScreen() {
     Alert.alert("Workout saved 🎉", `${workout.title} is in your Progress.`, [
       { text: "Back to Plan", onPress: () => router.back() },
     ]);
+    router.push(`/progress`); // redirect to progress tab to see the new entry
   };
 
   return (

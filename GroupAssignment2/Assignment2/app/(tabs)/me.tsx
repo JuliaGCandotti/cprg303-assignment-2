@@ -35,7 +35,7 @@ export default function MeScreen() {
       <View style={styles.heroWrapper}>
         <View style={styles.heroCover}>
           <Image
-            source={{ uri: 'https://img.freepik.com/free-photo/gym-equipment_53876-14.jpg' }}
+            source={{ uri: 'https://img.freepik.com/free-photo/interior-equipment-modern-gym-close-up-view-suspension-straps-sport-fitness-health_613910-20264.jpg' }}
             style={styles.coverImage}
           />
         </View>
